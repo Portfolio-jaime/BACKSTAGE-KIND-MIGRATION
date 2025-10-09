@@ -50,7 +50,7 @@ spec:
 
       containers:
       - name: backstage
-        image: jaimehenao8126/backstage-production:v6
+        image: jaimehenao8126/backstage-production:v7
         imagePullPolicy: Always  # Pull latest from DockerHub
 
         ports:
