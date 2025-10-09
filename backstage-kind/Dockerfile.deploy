@@ -1,0 +1,33 @@
+FROM node:20-bullseye-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        netcat \
+        && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy app-config files
+COPY app-config.yaml app-config.production.yaml ./
+
+# Copy backend dist
+COPY packages/backend/dist ./packages/backend
+
+# Copy app dist (static files)
+COPY packages/app/dist ./packages/app/dist
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:7007/healthcheck || exit 1
+
+EXPOSE 7007
+
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+
+RUN chown -R 1000:1000 /app
+USER 1000
+
+CMD ["node", "packages/backend", "--config", "app-config.yaml", "--config", "app-config.production.yaml"]

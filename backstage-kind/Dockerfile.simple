@@ -1,0 +1,57 @@
+# ============================================
+# Simplified Dockerfile for Backstage
+# Uses pre-built artifacts from local machine
+# ============================================
+
+FROM node:20-bullseye-slim
+
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        netcat \
+        && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json yarn.lock ./
+COPY .yarnrc.yml ./.yarnrc.yml
+COPY .yarn ./.yarn
+
+# Copy workspace definitions
+COPY packages/app/package.json ./packages/app/package.json
+COPY packages/backend/package.json ./packages/backend/package.json
+
+# Copy pre-built node_modules from local machine
+COPY node_modules ./node_modules
+COPY packages/app/node_modules ./packages/app/node_modules
+COPY packages/backend/node_modules ./packages/backend/node_modules
+
+# Copy all source and build directories
+# Using wildcard to avoid errors if directories don't exist
+COPY packages ./packages
+COPY app-config.yaml ./app-config.yaml
+COPY app-config.production.yaml ./app-config.production.yaml
+
+# Create necessary directories
+RUN mkdir -p /app/tmp && \
+    chown -R 1000:1000 /app
+
+# Switch to non-root user
+USER 1000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:7007/healthcheck || exit 1
+
+# Expose backend port
+EXPOSE 7007
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+
+# Start command
+CMD ["node", "packages/backend", "--config", "app-config.yaml", "--config", "app-config.production.yaml"]

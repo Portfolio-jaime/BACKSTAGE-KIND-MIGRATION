@@ -1,0 +1,62 @@
+# ============================================
+# Minimal Dockerfile for Backstage
+# Installs and builds everything in container
+# ============================================
+
+FROM node:20-bullseye
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        netcat \
+        git \
+        python3 \
+        python3-pip \
+        build-essential \
+        && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json yarn.lock ./
+COPY .yarnrc.yml ./
+COPY .yarn ./.yarn
+
+# Copy workspace package files
+COPY packages/app/package.json ./packages/app/
+COPY packages/backend/package.json ./packages/backend/
+
+# Install dependencies
+RUN yarn install
+
+# Copy all source code
+COPY packages ./packages
+COPY app-config.yaml ./
+COPY app-config.production.yaml ./
+
+# Build
+RUN yarn workspace app build && \
+    yarn workspace backend build
+
+# Clean up dev dependencies
+RUN yarn install --production --ignore-scripts --prefer-offline
+
+# Create directories
+RUN mkdir -p /app/tmp && \
+    chown -R node:node /app
+
+# Switch to node user
+USER node
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:7007/healthcheck || exit 1
+
+EXPOSE 7007
+
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+
+CMD ["node", "packages/backend", "--config", "app-config.yaml", "--config", "app-config.production.yaml"]

@@ -1,0 +1,33 @@
+# Secrets and sensitive files
+*.secret
+*.key
+*.pem
+.env
+.env.*
+!.env.example
+
+# Kubernetes secrets with real values
+kubernetes/secrets-local.yaml
+kubernetes/*-secrets.yaml
+kubernetes/secrets-generated.yaml
+
+# Backstage
+node_modules/
+dist/
+dist-types/
+coverage/
+
+# Local development
+.vscode/
+.idea/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# MacOS
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp

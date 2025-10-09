@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: backstage
+  labels:
+    app: backstage
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backstage
+  template:
+    metadata:
+      labels:
+        app: backstage
+    spec:
+      serviceAccountName: backstage
+      containers:
+      - name: backstage
+        image: jaimehenao8126/backstage-production:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 7007
+        env:
+        - name: APP_CONFIG_app_baseUrl
+          value: "http://backstage.kind.local"
+        - name: APP_CONFIG_backend_baseUrl
+          value: "http://backstage.kind.local"
+        envFrom:
+        - secretRef:
+            name: backstage-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: app-config
+          mountPath: /app/app-config.production.yaml
+          subPath: app-config.yaml
+        - name: users
+          mountPath: /app/users.yaml
+          subPath: users.yaml
+        - name: groups
+          mountPath: /app/catalog/entities/groups.yaml
+          subPath: catalog-entities-groups.yaml
+        - name: user-entities
+          mountPath: /app/catalog/entities/users.yaml
+          subPath: catalog-entities-users.yaml
+      volumes:
+      - name: app-config
+        configMap:
+          name: backstage-enhanced-config
+      - name: users
+        configMap:
+          name: backstage-enhanced-config
+      - name: groups
+        configMap:
+          name: backstage-enhanced-config
+      - name: user-entities
+        configMap:
+          name: backstage-enhanced-config

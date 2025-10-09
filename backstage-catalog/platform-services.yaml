@@ -1,0 +1,183 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: prometheus
+  title: Prometheus
+  description: Monitoring and alerting toolkit for Kubernetes
+  annotations:
+    backstage.io/kubernetes-id: prometheus
+    backstage.io/kubernetes-namespace: monitoring
+  tags:
+    - monitoring
+    - prometheus
+    - metrics
+  links:
+    - url: http://prometheus.kind.local
+      title: Prometheus UI
+      icon: dashboard
+    - url: http://prometheus.kind.local/targets
+      title: Targets
+      icon: catalog
+    - url: http://prometheus.kind.local/alerts
+      title: Alerts
+      icon: alert
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-engineering
+  system: monitoring
+  providesApis:
+    - prometheus-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana
+  title: Grafana
+  description: Analytics and interactive visualization platform
+  annotations:
+    backstage.io/kubernetes-id: grafana
+    backstage.io/kubernetes-namespace: monitoring
+  tags:
+    - monitoring
+    - grafana
+    - visualization
+    - dashboards
+  links:
+    - url: http://grafana.kind.local
+      title: Grafana UI
+      icon: dashboard
+    - url: http://grafana.kind.local/dashboards
+      title: Dashboards
+      icon: catalog
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-engineering
+  system: monitoring
+  dependsOn:
+    - component:prometheus
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: argocd
+  title: ArgoCD
+  description: Declarative GitOps continuous delivery tool for Kubernetes
+  annotations:
+    backstage.io/kubernetes-id: argocd
+    backstage.io/kubernetes-namespace: argocd
+    argocd/app-name: backstage
+  tags:
+    - gitops
+    - argocd
+    - deployment
+    - cd
+  links:
+    - url: http://argocd.kind.local
+      title: ArgoCD UI
+      icon: dashboard
+    - url: http://argocd.kind.local/applications
+      title: Applications
+      icon: catalog
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-engineering
+  system: platform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: kubernetes-cluster
+  title: Kind Kubernetes Cluster
+  description: Local Kubernetes cluster running with Kind
+  annotations:
+    backstage.io/kubernetes-id: kind
+  tags:
+    - kubernetes
+    - kind
+    - cluster
+    - infrastructure
+  links:
+    - url: http://backstage.kind.local/catalog/default/component/kubernetes-cluster/kubernetes
+      title: Cluster Resources
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-engineering
+  system: platform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: alertmanager
+  title: AlertManager
+  description: Handles alerts sent by Prometheus server
+  annotations:
+    backstage.io/kubernetes-id: alertmanager
+    backstage.io/kubernetes-namespace: monitoring
+  tags:
+    - monitoring
+    - alertmanager
+    - alerts
+  links:
+    - url: http://alertmanager.kind.local
+      title: AlertManager UI
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-engineering
+  system: monitoring
+  dependsOn:
+    - component:prometheus
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: monitoring
+  title: Monitoring System
+  description: Complete monitoring stack with Prometheus and Grafana
+  tags:
+    - monitoring
+    - observability
+spec:
+  owner: platform-engineering
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: platform
+  title: Platform Services
+  description: Core platform services including GitOps and Kubernetes
+  tags:
+    - platform
+    - infrastructure
+spec:
+  owner: platform-engineering
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: prometheus-api
+  title: Prometheus API
+  description: Prometheus HTTP API for querying metrics
+  tags:
+    - prometheus
+    - api
+    - metrics
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-engineering
+  system: monitoring
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Prometheus API
+      version: 1.0.0
+    servers:
+      - url: http://prometheus.kind.local/api/v1

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backstage-env-config
+  namespace: backstage
+  labels:
+    app: backstage
+data:
+  # PostgreSQL connection (using existing psql-postgresql service)
+  POSTGRES_HOST: "psql-postgresql.backstage.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "backstage"
+
+  # Node environment
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+
+  # App URLs
+  APP_BASE_URL: "http://backstage.kind.local"
+  BACKEND_BASE_URL: "http://backstage.kind.local"
+
+  # CORS
+  CORS_ORIGIN: "http://backstage.kind.local"

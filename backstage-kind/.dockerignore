@@ -1,0 +1,8 @@
+.git
+.yarn/cache
+.yarn/install-state.gz
+# node_modules  # Commented for Docker build with local deps
+packages/*/src
+# packages/*/node_modules  # Commented for Docker build with local deps
+plugins
+*.local.yaml

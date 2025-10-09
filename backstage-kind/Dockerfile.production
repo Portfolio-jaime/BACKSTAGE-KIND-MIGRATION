@@ -1,0 +1,140 @@
+# ============================================
+# Multi-stage Dockerfile for Backstage
+# Optimized for Kind Kubernetes deployment
+# ============================================
+
+# ============================================
+# Stage 1: Build Frontend
+# ============================================
+FROM node:20-bullseye-slim AS frontend-build
+
+# Install build dependencies for native modules
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 \
+        make \
+        g++ \
+        gcc \
+        build-essential \
+        && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy root package files
+COPY package.json yarn.lock ./
+COPY .yarnrc.yml ./.yarnrc.yml
+COPY .yarn ./.yarn
+
+# Copy workspace package files
+COPY packages/app/package.json ./packages/app/package.json
+COPY packages/backend/package.json ./packages/backend/package.json
+
+# Install dependencies
+RUN yarn install
+
+# Copy source code
+COPY packages/app ./packages/app
+COPY packages/backend ./packages/backend
+
+# Build frontend
+RUN yarn workspace app build
+
+# ============================================
+# Stage 2: Build Backend
+# ============================================
+FROM node:20-bullseye-slim AS backend-build
+
+# Install build dependencies for native modules
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 \
+        make \
+        g++ \
+        gcc \
+        build-essential \
+        && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy root package files
+COPY package.json yarn.lock ./
+COPY .yarnrc.yml ./.yarnrc.yml
+COPY .yarn ./.yarn
+
+# Copy workspace package files
+COPY packages/backend/package.json ./packages/backend/package.json
+
+# Install ALL dependencies (including devDependencies for build)
+RUN yarn install
+
+# Copy backend source
+COPY packages/backend ./packages/backend
+
+# Build backend
+RUN yarn workspace backend build
+
+# Install production dependencies (do NOT prune, we need all runtime deps)
+RUN yarn cache clean
+
+# ============================================
+# Stage 3: Production Runtime
+# ============================================
+FROM node:20-bullseye-slim AS runtime
+
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        netcat \
+        && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user (use existing node user which has uid/gid 1000)
+# Or create with different IDs if node user exists
+RUN if ! getent group 1000 > /dev/null 2>&1; then \
+      groupadd -r backstage --gid=1000; \
+    fi && \
+    if ! getent passwd 1000 > /dev/null 2>&1; then \
+      useradd -r -g $(getent group 1000 | cut -d: -f1) --uid=1000 --home-dir=/app --shell=/bin/bash backstage; \
+    else \
+      echo "Using existing user with UID 1000"; \
+    fi && \
+    mkdir -p /app && chown -R 1000:1000 /app
+
+WORKDIR /app
+
+# Copy package files
+COPY --chown=1000:1000 package.json yarn.lock ./
+COPY --chown=1000:1000 .yarnrc.yml ./.yarnrc.yml
+COPY --chown=1000:1000 .yarn ./.yarn
+
+# Copy built artifacts from previous stages
+COPY --from=frontend-build --chown=1000:1000 /app/packages/app/dist ./packages/app/dist
+COPY --from=backend-build --chown=1000:1000 /app/packages/backend/dist ./packages/backend/dist
+# Copy ALL node_modules including workspace dependencies
+COPY --from=backend-build --chown=1000:1000 /app/node_modules ./node_modules
+COPY --from=backend-build --chown=1000:1000 /app/packages ./packages
+
+# Copy app configuration
+COPY --chown=1000:1000 app-config.yaml ./app-config.yaml
+COPY --chown=1000:1000 app-config.production.yaml ./app-config.production.yaml
+
+# Create necessary directories
+RUN mkdir -p /app/tmp && chown -R 1000:1000 /app/tmp
+
+# Switch to non-root user (use UID since username might not exist)
+USER 1000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:7007/healthcheck || exit 1
+
+# Expose backend port
+EXPOSE 7007
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+
+# Start command
+CMD ["node", "packages/backend", "--config", "app-config.yaml", "--config", "app-config.production.yaml"]
