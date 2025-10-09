@@ -50,12 +50,12 @@ Este proyecto despliega un **Developer Portal completo** basado en Backstage con
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                 Backstage Developer Portal                │
-│              http://backstage.kind.local                  │
+│                 Backstage Developer Portal               │
+│              http://backstage.kind.local                 │
 └──────────────────────────────────────────────────────────┘
                           │
-                          ├─────────────────────────┐
-                          │                         │
+                          ├────────────────────────┐
+                          │                        │
           ┌───────────────┴────────┐    ┌──────────┴──────────┐
           │   Monitoring Stack     │    │  GitOps Platform    │
           │   (monitoring ns)      │    │   (argocd ns)       │
