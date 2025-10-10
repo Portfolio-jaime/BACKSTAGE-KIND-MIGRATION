@@ -54,6 +54,7 @@ helm-install: build-docker ## Install Backstage using Helm
 	@kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@helm install $(HELM_RELEASE) helm/backstage -n $(NAMESPACE) \
 		--set image.tag=$(DOCKER_TAG) \
+		--create-namespace \
 		--wait --timeout 10m
 	@echo "Helm installation complete!"
 
@@ -61,6 +62,7 @@ helm-upgrade: build-docker ## Upgrade Backstage using Helm
 	@echo "Upgrading Backstage using Helm..."
 	@helm upgrade $(HELM_RELEASE) helm/backstage -n $(NAMESPACE) \
 		--set image.tag=$(DOCKER_TAG) \
+		--install \
 		--wait --timeout 10m
 	@echo "Helm upgrade complete!"
 
@@ -68,6 +70,14 @@ helm-uninstall: ## Uninstall Backstage Helm release
 	@echo "Uninstalling Backstage..."
 	@helm uninstall $(HELM_RELEASE) -n $(NAMESPACE)
 	@echo "Helm uninstall complete!"
+
+helm-migrate: ## Migrate existing deployment to Helm
+	@echo "Migrating existing deployment to Helm..."
+	@kubectl delete deployment backstage -n $(NAMESPACE) || true
+	@kubectl delete service backstage -n $(NAMESPACE) || true
+	@kubectl delete ingress backstage -n $(NAMESPACE) || true
+	@$(MAKE) helm-install
+	@echo "Migration complete!"
 
 postgres-rollout: ## Rollout restart PostgreSQL
 	@echo "Rolling out PostgreSQL..."

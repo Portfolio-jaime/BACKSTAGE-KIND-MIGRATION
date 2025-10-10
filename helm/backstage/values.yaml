@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   repository: jaimehenao8126/backstage-production
   pullPolicy: Always
-  tag: "v7"
+  tag: "latest"
 
 namespace: backstage
 
@@ -17,14 +17,11 @@ service:
 ingress:
   enabled: true
   className: nginx
-  host: backstage.arhean.com
+  host: backstage.kind.local
   tls:
-    enabled: true
+    enabled: false
     secretName: backstage-tls
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+  annotations: {}
 
 resources:
   requests:

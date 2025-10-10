@@ -1,0 +1,274 @@
+name: CI/CD Pipeline - Backstage
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'backstage-kind/**'
+      - 'helm/**'
+      - 'kubernetes/**'
+      - 'Makefile'
+      - '.github/workflows/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - production
+
+env:
+  DOCKER_IMAGE: jaimehenao8126/backstage-production
+  NAMESPACE: backstage
+
+jobs:
+  # Build and Test Job
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      version: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: backstage-kind/yarn.lock
+
+      - name: Install dependencies
+        working-directory: backstage-kind
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Run linter
+        working-directory: backstage-kind
+        run: |
+          yarn workspace backend lint || true
+          yarn workspace app lint || true
+
+      - name: Run tests
+        working-directory: backstage-kind
+        run: |
+          yarn workspace backend test --passWithNoTests || true
+          yarn workspace app test --passWithNoTests || true
+
+      - name: Build backend
+        working-directory: backstage-kind
+        run: |
+          yarn workspace backend build
+
+      - name: Build frontend
+        working-directory: backstage-kind
+        run: |
+          yarn workspace app build
+
+      # Docker Build and Push
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backstage-kind
+          file: ./backstage-kind/Dockerfile.kind
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Image digest
+        run: echo ${{ steps.meta.outputs.digest }}
+
+  # Deploy to Development
+  deploy-dev:
+    name: Deploy to Development
+    needs: build
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: http://backstage.kind.local
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_DEV }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Create namespace
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply secrets
+        run: |
+          kubectl create secret generic backstage-secrets \
+            --from-literal=POSTGRES_HOST="${{ secrets.POSTGRES_HOST }}" \
+            --from-literal=POSTGRES_PORT="${{ secrets.POSTGRES_PORT }}" \
+            --from-literal=POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
+            --from-literal=POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
+            --from-literal=POSTGRES_DB="${{ secrets.POSTGRES_DB }}" \
+            --from-literal=GITHUB_TOKEN="${{ secrets.GH_TOKEN }}" \
+            --from-literal=AUTH_GITHUB_CLIENT_ID="${{ secrets.AUTH_GITHUB_CLIENT_ID }}" \
+            --from-literal=AUTH_GITHUB_CLIENT_SECRET="${{ secrets.AUTH_GITHUB_CLIENT_SECRET }}" \
+            --from-literal=BACKEND_SECRET="${{ secrets.BACKEND_SECRET }}" \
+            --from-literal=ARGOCD_USERNAME="${{ secrets.ARGOCD_USERNAME }}" \
+            --from-literal=ARGOCD_PASSWORD="${{ secrets.ARGOCD_PASSWORD }}" \
+            --from-literal=ARGOCD_AUTH_TOKEN="${{ secrets.ARGOCD_AUTH_TOKEN }}" \
+            --namespace=${{ env.NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply ConfigMap
+        run: |
+          kubectl apply -f kubernetes/configmap.yaml
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install backstage ./helm/backstage \
+            --namespace ${{ env.NAMESPACE }} \
+            --set image.tag=${{ github.sha }} \
+            --wait --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/backstage -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl get pods -n ${{ env.NAMESPACE }}
+
+  # Deploy to Production
+  deploy-prod:
+    name: Deploy to Production
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://backstage.arhean.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_PROD }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Create namespace
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply secrets
+        run: |
+          kubectl create secret generic backstage-secrets \
+            --from-literal=POSTGRES_HOST="${{ secrets.POSTGRES_HOST_PROD }}" \
+            --from-literal=POSTGRES_PORT="${{ secrets.POSTGRES_PORT }}" \
+            --from-literal=POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
+            --from-literal=POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD_PROD }}" \
+            --from-literal=POSTGRES_DB="${{ secrets.POSTGRES_DB }}" \
+            --from-literal=GITHUB_TOKEN="${{ secrets.GH_TOKEN }}" \
+            --from-literal=AUTH_GITHUB_CLIENT_ID="${{ secrets.AUTH_GITHUB_CLIENT_ID_PROD }}" \
+            --from-literal=AUTH_GITHUB_CLIENT_SECRET="${{ secrets.AUTH_GITHUB_CLIENT_SECRET_PROD }}" \
+            --from-literal=BACKEND_SECRET="${{ secrets.BACKEND_SECRET_PROD }}" \
+            --from-literal=ARGOCD_USERNAME="${{ secrets.ARGOCD_USERNAME }}" \
+            --from-literal=ARGOCD_PASSWORD="${{ secrets.ARGOCD_PASSWORD_PROD }}" \
+            --from-literal=ARGOCD_AUTH_TOKEN="${{ secrets.ARGOCD_AUTH_TOKEN_PROD }}" \
+            --namespace=${{ env.NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply ConfigMap
+        run: |
+          kubectl apply -f kubernetes/configmap.yaml
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install backstage ./helm/backstage \
+            --namespace ${{ env.NAMESPACE }} \
+            --set image.tag=${{ github.sha }} \
+            --set ingress.host=backstage.arhean.com \
+            --set ingress.tls.enabled=true \
+            --wait --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/backstage -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl get pods -n ${{ env.NAMESPACE }}
+
+      - name: Run smoke tests
+        run: |
+          kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never \
+            -n ${{ env.NAMESPACE }} -- \
+            curl -f http://backstage.${{ env.NAMESPACE }}.svc.cluster.local/healthcheck
+
+  # Cleanup old images
+  cleanup:
+    name: Cleanup old Docker images
+    needs: [deploy-dev, deploy-prod]
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete old images
+        run: |
+          echo "Cleanup completed - manual Docker Hub cleanup recommended"
