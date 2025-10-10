@@ -142,3 +142,4 @@ quick-deploy: build-backend build-frontend build-docker restart ## Quick redeplo
 # Full production workflow
 prod-deploy: push-docker helm-upgrade ## Full production deployment with Helm
 	@echo "Production deployment complete!"
+
