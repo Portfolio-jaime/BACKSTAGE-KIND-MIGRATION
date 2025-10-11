@@ -124,12 +124,40 @@ Grafana configurado para login con GitHub:
 
 Los siguientes targets están DOWN porque Kind no expone estos puertos por defecto (comportamiento esperado):
 
-- ⚠️ kube-controller-manager
-- ⚠️ kube-scheduler
-- ⚠️ kube-proxy
-- ⚠️ etcd
+- ⚠️ **kube-controller-manager** (puerto 10257) - `connection refused`
+- ⚠️ **kube-scheduler** (puerto 10259) - `connection refused`
+- ⚠️ **kube-proxy** (puerto 10249) - `connection refused`
+- ⚠️ **etcd** (puerto 2381) - `connection refused`
 
-**Nota:** Estos son componentes internos de K8s que Kind no expone por seguridad. No afecta el monitoreo de aplicaciones.
+**¿Por qué están DOWN?**
+
+Kind (Kubernetes in Docker) **no expone estos puertos por seguridad y simplicidad**. Estos son componentes internos del control plane que se ejecutan dentro del contenedor de Kind pero no están accesibles externamente.
+
+**¿Es un problema?**
+
+❌ **NO es un problema**. Para monitorear **aplicaciones y workloads** (como Backstage), ya tienes todas las métricas necesarias de:
+
+- ✅ **Kubelet** - Métricas de pods y containers
+- ✅ **API Server** - Métricas de requests al API
+- ✅ **Node Exporter** - Métricas del sistema operativo
+- ✅ **Kube State Metrics** - Estado de todos los recursos K8s
+- ✅ **CoreDNS** - Métricas de DNS
+
+**¿Cómo solucionarlo (si realmente lo necesitas)?**
+
+Solo necesario si quieres métricas profundas del control plane (muy raro en desarrollo):
+
+1. **Opción 1 (Recomendada)**: Deshabilitar estos ServiceMonitors en Helm values:
+```yaml
+defaultRules:
+  rules:
+    kubeProxy: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    etcd: false
+```
+
+2. **Opción 2**: Reconfigurar Kind cluster para exponer puertos (requiere recrear cluster)
 
 ### Backstage Metrics ⏳
 
