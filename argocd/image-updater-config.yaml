@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-image-updater-config
+  namespace: argocd
+data:
+  # Configuración de registries
+  registries.conf: |
+    registries:
+      - name: Docker Hub
+        prefix: docker.io
+        api_url: https://registry-1.docker.io
+        ping: yes
+        credentials: pullsecret:argocd/dockerhub-secret
+        default: yes
+
+  # Git commit template
+  git.commit-message-template: |
+    build: update {{.Name}} image to {{.NewTag}}
+
+    Auto-updated by ArgoCD Image Updater
+
+    Image: {{.Image}}
+    Old tag: {{.OldTag}}
+    New tag: {{.NewTag}}
+
+    Signed-off-by: ArgoCD Image Updater <noreply@argocd.io>
+
+  # Log level
+  log.level: info
