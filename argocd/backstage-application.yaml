@@ -9,10 +9,11 @@ metadata:
   # Annotations para Image Updater (actualización automática de imagen)
   annotations:
     argocd-image-updater.argoproj.io/image-list: backstage=jaimehenao8126/backstage-production:latest
-    argocd-image-updater.argoproj.io/backstage.update-strategy: latest
+    argocd-image-updater.argoproj.io/backstage.update-strategy: newest-build
     argocd-image-updater.argoproj.io/backstage.allow-tags: regexp:^(latest|main-.*)$
     argocd-image-updater.argoproj.io/write-back-method: git
-    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: backstage-notifications
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/write-back-target: "kustomization:helm/backstage"
 spec:
   # Proyecto de ArgoCD
   project: default

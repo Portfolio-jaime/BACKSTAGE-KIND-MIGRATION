@@ -1,182 +1,226 @@
-# 🚀 Backstage Platform on Kind - Complete Setup
+# 🚀 Backstage on Kind with GitOps
 
-> **Developer Portal con Stack Completo de Observabilidad y GitOps**
+> **Developer Portal con CI/CD automático, GitOps y Monitoreo**
 
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Backstage](https://img.shields.io/badge/Backstage-9BF0E1?style=for-the-badge&logo=backstage&logoColor=black)](https://backstage.io/)
-[![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)](https://prometheus.io/)
-[![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)](https://grafana.com/)
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?style=for-the-badge&logo=argo&logoColor=white)](https://argoproj.github.io/cd/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/features/actions)
 
 ---
 
-## 📖 Tabla de Contenidos
+## 📋 Tabla de Contenidos
 
 - [Overview](#-overview)
 - [Arquitectura](#-arquitectura)
 - [Quick Start](#-quick-start)
-- [Servicios Desplegados](#-servicios-desplegados)
-- [Acceso](#-acceso)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Servicios](#-servicios)
 - [Documentación](#-documentación)
-- [Troubleshooting](#-troubleshooting)
+- [Flujo de Trabajo](#-flujo-de-trabajo)
 
 ---
 
 ## 🎯 Overview
 
-Este proyecto despliega un **Developer Portal completo** basado en Backstage con un stack de observabilidad y GitOps en un cluster local de Kubernetes (Kind).
+Implementación completa de **Backstage** en Kubernetes (Kind) con:
 
-### ✨ Características Principales
+### ✨ Características
 
-- 🏠 **Backstage** - Developer Portal con catálogo de servicios
-- 📊 **Prometheus** - Recolección de métricas
-- 📈 **Grafana** - Dashboards y visualización
-- 🔄 **ArgoCD** - GitOps continuous delivery
-- 🚨 **AlertManager** - Gestión de alertas
-- 🗄️ **PostgreSQL** - Base de datos para Backstage
-- 🌐 **NGINX Ingress** - Ingress Controller
-
-### 🎨 Custom Pages en Backstage
-
-- `/prometheus` - Monitoring y métricas
-- `/grafana` - Dashboards y visualización
-- `/argocd` - GitOps deployments
-- `/kubernetes` - Cluster management
+- 🔄 **GitOps con ArgoCD** - Deployments automáticos desde Git
+- 🚀 **CI/CD con GitHub Actions** - Build y push automático de imágenes
+- 📊 **Monitoreo con Prometheus + Grafana**
+- 🗄️ **PostgreSQL** - Base de datos en cluster
+- 🔐 **Gestión segura de secrets**
+- 🎯 **Auto-sync** - Actualización automática con nuevas imágenes
 
 ---
 
 ## 🏗️ Arquitectura
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                 Backstage Developer Portal               │
-│              http://backstage.kind.local                 │
-└──────────────────────────────────────────────────────────┘
-                          │
-                          ├────────────────────────┐
-                          │                        │
-          ┌───────────────┴────────┐    ┌──────────┴──────────┐
-          │   Monitoring Stack     │    │  GitOps Platform    │
-          │   (monitoring ns)      │    │   (argocd ns)       │
-          │                        │    │                     │
-          │  • Prometheus :9090    │    │  • ArgoCD :443      │
-          │  • Grafana :80         │    │  • Repo Server      │
-          │  • AlertManager :9093  │    │  • App Controller   │
-          └────────────────────────┘    └─────────────────────┘
-                          │
-          ┌───────────────┴────────────────────────┐
-          │     Kind Kubernetes Cluster            │
-          │     • 1 Control Plane Node             │
-          │     • NGINX Ingress Controller         │
-          │     • Resource Quotas Configured       │
-          └────────────────────────────────────────┘
+Developer Push Code
+        │
+        ▼
+   GitHub Repository
+        │
+        ├─> GitHub Actions
+        │   ├─ Build & Test
+        │   └─ Push to Docker Hub
+        │       │
+        ▼       ▼
+ArgoCD Image Updater (cada 2 min)
+        │
+        ├─ Detecta nueva imagen
+        ├─ Actualiza values.yaml en Git
+        └─ Commit automático
+                │
+                ▼
+        ArgoCD (auto-sync)
+                │
+                ├─ Helm upgrade
+                └─ Rolling update
+                        │
+                        ▼
+                Kubernetes (Kind)
+                        │
+                        ├─ Backstage Pod
+                        ├─ PostgreSQL
+                        └─ Prometheus + Grafana
 ```
 
 ---
 
 ## ⚡ Quick Start
 
-### Prerrequisitos
+### 1. Prerrequisitos
 
 ```bash
-# Verificar instalaciones
-docker --version          # Docker 20.10+
-kind --version           # Kind 0.20+
-kubectl version         # Kubectl 1.27+
-helm version            # Helm 3.12+
+# Instalar herramientas
+- Docker Desktop
+- Kind
+- kubectl
+- Helm 3
+- Node.js 20+
+- Yarn
 ```
 
-### Instalación Rápida
+### 2. Setup Rápido
 
 ```bash
-# 1. Clonar repositorio
-git clone <repo-url>
-cd backstage-kind-migration
+# 1. Crear cluster Kind
+make kind-create
 
-# 2. Crear cluster Kind
-kind create cluster --name kind
+# 2. Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus credenciales
 
-# 3. Instalar NGINX Ingress
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+# 3. Desplegar PostgreSQL
+make deploy-postgres
 
-# 4. Esperar a que NGINX esté listo
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=90s
+# 4. Crear secrets
+make create-secrets
 
-# 5. Desplegar Monitoring Stack
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --create-namespace
+# 5. Instalar ArgoCD y configurar GitOps
+chmod +x scripts/setup-argocd.sh
+./scripts/setup-argocd.sh
 
-# 6. Desplegar ArgoCD
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# 6. Build y push imagen inicial
+make build-docker
+docker push jaimehenao8126/backstage-production:latest
+```
 
-# 7. Desplegar Backstage
-kubectl apply -f kubernetes/namespace.yaml
-kubectl apply -f kubernetes/secrets.yaml
-kubectl apply -f kubernetes/configmap.yaml
-kubectl apply -f kubernetes/rbac.yaml
-kubectl apply -f kubernetes/simple-deployment.yaml
-kubectl apply -f kubernetes/service.yaml
-kubectl apply -f kubernetes/ingress.yaml
+### 3. Configurar GitHub Secrets
 
-# 8. Aplicar Ingresses
-kubectl apply -f kubernetes/monitoring-ingresses.yaml
-kubectl apply -f kubernetes/argocd-ingress.yaml
+```bash
+# Upload secrets a GitHub para CI/CD
+chmod +x scripts/upload-secrets.sh
+./scripts/upload-secrets.sh
+```
 
-# 9. Configurar DNS local
-sudo nano /etc/hosts
-# Agregar:
-# 127.0.0.1 backstage.kind.local prometheus.kind.local grafana.kind.local argocd.kind.local alertmanager.kind.local
+### 4. Verificar Deployment
 
-# 10. Verificar
-kubectl get pods --all-namespaces
+```bash
+# Ver estado de ArgoCD
+kubectl get application backstage -n argocd
+
+# Ver pods
+kubectl get pods -n backstage
+
+# Acceder a Backstage
+kubectl port-forward -n backstage svc/backstage 7007:80
+# http://localhost:7007
 ```
 
 ---
 
-## 🌐 Servicios Desplegados
+## 🌐 Servicios
 
-### URLs de Acceso
+### URLs y Accesos
 
-| Servicio | URL | Namespace | Descripción |
-|----------|-----|-----------|-------------|
-| **Backstage** | http://backstage.kind.local | `backstage` | Developer Portal |
-| **Prometheus** | http://prometheus.kind.local | `monitoring` | Metrics & Monitoring |
-| **Grafana** | http://grafana.kind.local | `monitoring` | Dashboards |
-| **ArgoCD** | http://argocd.kind.local | `argocd` | GitOps CD |
-| **AlertManager** | http://alertmanager.kind.local | `monitoring` | Alert Management |
-
----
-
-## 🔑 Acceso
+| Servicio | Port Forward | Credenciales |
+|----------|-------------|--------------|
+| **Backstage** | `kubectl port-forward -n backstage svc/backstage 7007:80` | N/A |
+| **ArgoCD** | `kubectl port-forward -n argocd svc/argocd-server 8080:443` | `admin` / [ver abajo](#credenciales) |
+| **Grafana** | `kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80` | `admin` / `prom-operator` |
+| **Prometheus** | `kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090` | N/A |
 
 ### Credenciales
 
-#### Grafana
 ```bash
-# Usuario: admin
-kubectl get secret -n monitoring kube-prometheus-stack-grafana \
-  -o jsonpath="{.data.admin-password}" | base64 -d && echo
-```
-
-#### ArgoCD
-```bash
-# Usuario: admin
+# ArgoCD admin password
 kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath="{.data.password}" | base64 -d && echo
+
+# PostgreSQL password
+kubectl get secret -n backstage backstage-secrets \
+  -o jsonpath="{.data.POSTGRES_PASSWORD}" | base64 -d && echo
 ```
 
-#### PostgreSQL (Backstage)
+---
+
+## 📚 Documentación
+
+### Guías Principales
+
+1. **[Project Setup](docs/PROJECT_SETUP.md)** ⭐
+   - Configuración completa del proyecto
+   - Arquitectura detallada
+   - Todos los comandos necesarios
+   - Troubleshooting
+
+2. **[GitOps con ArgoCD](docs/GITOPS_ARGOCD.md)**
+   - Flujo GitOps completo
+   - Configuración de Image Updater
+   - Monitoreo y alertas
+   - Best practices
+
+3. **[Architecture Diagrams](docs/ARCHITECTURE_DIAGRAMS.md)**
+   - Diagramas visuales
+   - Flujos de datos
+   - Componentes del sistema
+
+### Guías Adicionales
+
+- `docs/DEPLOYMENT_GUIDE.md` - Guía de deployment
+- `docs/PLATFORM_MONITORING_GUIDE.md` - Monitoreo
+- `docs/BACKSTAGE_CONFIGURATION_GUIDE.md` - Configuración de Backstage
+
+---
+
+## 🔄 Flujo de Trabajo
+
+### Desarrollo Diario
+
 ```bash
-# Usuario: backstage
-kubectl get secret -n backstage psql-postgresql \
-  -o jsonpath="{.data.postgres-password}" | base64 -d && echo
+# 1. Hacer cambios en backstage-kind/
+git checkout -b feature/mi-cambio
+# ... hacer cambios ...
+
+# 2. Commit y push
+git add .
+git commit -m "feat: nuevo cambio"
+git push origin feature/mi-cambio
+
+# 3. Crear PR y merge a main
+
+# 4. ✨ AUTOMÁTICO desde aquí:
+#    - GitHub Actions build imagen
+#    - Push a Docker Hub
+#    - ArgoCD Image Updater detecta cambio
+#    - ArgoCD aplica cambios
+#    - Rolling update en K8s
+```
+
+### Verificar Deployment
+
+```bash
+# Ver en ArgoCD UI
+kubectl port-forward -n argocd svc/argocd-server 8080:443
+# https://localhost:8080
+
+# O por línea de comandos
+kubectl get application backstage -n argocd
+kubectl get pods -n backstage -w
 ```
 
 ---
@@ -185,133 +229,117 @@ kubectl get secret -n backstage psql-postgresql \
 
 ```
 backstage-kind-migration/
-├── README.md                          # Este archivo
-├── docs/
-│   ├── PLATFORM_MONITORING_GUIDE.md   # Guía completa
-│   ├── MIGRATION_PLAN.md              # Plan de migración
-│   └── CLUSTER_STATUS.md              # Estado del cluster
-├── kubernetes/
-│   ├── namespace.yaml                 # Namespace de Backstage
-│   ├── secrets.yaml                   # Secrets (Git, DB, etc)
-│   ├── configmap.yaml                 # ConfigMap de Backstage
-│   ├── rbac.yaml                      # ServiceAccount, Role, Binding
-│   ├── simple-deployment.yaml         # Deployment de Backstage
-│   ├── service.yaml                   # Service ClusterIP
-│   ├── ingress.yaml                   # Ingress para Backstage
-│   ├── monitoring-ingresses.yaml      # Ingresses para Prometheus/Grafana
-│   └── argocd-ingress.yaml            # Ingress para ArgoCD
-├── backstage-catalog/
-│   └── platform-services.yaml         # Catálogo de servicios
-└── scripts/
-    ├── 01-setup-kind.sh               # Crear cluster
-    ├── 02-install-ingress.sh          # Instalar NGINX
-    ├── 03-deploy-backstage.sh         # Desplegar Backstage
-    ├── 04-verify-deployment.sh        # Verificar deployment
-    └── 05-update-existing-deployment.sh # Actualizar existente
+├── .github/workflows/
+│   └── ci-cd.yaml                    # 🚀 CI/CD Pipeline
+│
+├── argocd/
+│   ├── backstage-application.yaml    # 🎯 ArgoCD App
+│   ├── image-updater-config.yaml     # 🔄 Image Updater
+│   └── github-repo-secret.yaml       # 🔐 GitHub Auth
+│
+├── backstage-kind/                   # 💻 Backstage Source
+│   ├── packages/app/                 # Frontend
+│   ├── packages/backend/             # Backend
+│   ├── app-config.yaml               # Config
+│   └── Dockerfile.kind               # Dockerfile
+│
+├── helm/backstage/                   # ⎈ Helm Chart
+│   ├── Chart.yaml
+│   ├── values.yaml                   # 🎯 GitOps Source of Truth
+│   └── templates/
+│
+├── docs/                             # 📚 Documentation
+│   ├── PROJECT_SETUP.md              # ⭐ Guía Principal
+│   ├── GITOPS_ARGOCD.md             # GitOps Guide
+│   └── ...
+│
+├── scripts/
+│   ├── setup-argocd.sh              # ArgoCD Setup
+│   └── upload-secrets.sh            # GitHub Secrets
+│
+└── Makefile                         # 🛠️ Helper Commands
 ```
 
 ---
 
-## 📚 Documentación
-
-### Guías Disponibles
-
-1. **[Platform Monitoring Guide](docs/PLATFORM_MONITORING_GUIDE.md)** ⭐
-   - Arquitectura completa con diagramas
-   - Guías de implementación paso a paso
-   - Troubleshooting detallado
-   - Comandos útiles
-
-2. **[Migration Plan](docs/MIGRATION_PLAN.md)**
-   - Plan de migración completo
-   - Checklist de tareas
-   - Rollback procedures
-
-3. **[Cluster Status](docs/CLUSTER_STATUS.md)**
-   - Estado actual del cluster
-   - Recursos desplegados
-   - Métricas y quotas
-
----
-
-## 🔧 Troubleshooting
-
-### Comandos Útiles
+## 🛠️ Comandos Útiles
 
 ```bash
-# Ver logs de Backstage
-kubectl logs -f deployment/backstage -n backstage
+# Cluster Management
+make kind-create          # Crear cluster
+make kind-delete          # Eliminar cluster
+make kind-status          # Ver estado
 
-# Restart Backstage
-kubectl rollout restart deployment/backstage -n backstage
+# Build & Deploy
+make build-docker         # Build imagen local
+make load-image          # Load en Kind
+make helm-install        # Instalar con Helm
+make helm-upgrade        # Upgrade deployment
 
-# Ver eventos
+# Monitoring
+kubectl get all -n backstage                    # Ver recursos
+kubectl logs -n backstage -l app=backstage -f   # Ver logs
+kubectl get application -n argocd               # ArgoCD apps
+
+# Troubleshooting
+kubectl describe pod <pod-name> -n backstage
 kubectl get events -n backstage --sort-by='.lastTimestamp'
-
-# Ver resource quota
-kubectl describe resourcequota backstage-quota -n backstage
-```
-
-### Problemas Comunes
-
-#### Pod no inicia
-```bash
-kubectl describe pod <pod-name> -n <namespace>
-kubectl logs <pod-name> -n <namespace>
-```
-
-#### Ingress 404/502
-```bash
-kubectl get ingress -n <namespace>
-kubectl describe ingress <ingress-name> -n <namespace>
-cat /etc/hosts | grep kind.local
+kubectl logs -n argocd deployment/argocd-image-updater -f
 ```
 
 ---
 
-## 📊 Páginas de Backstage
+## 🔐 Seguridad
 
-El sistema incluye páginas personalizadas para cada servicio de plataforma:
-
-- **`/prometheus`** - Métricas y monitoring
-- **`/grafana`** - Dashboards y visualización
-- **`/argocd`** - GitOps deployments
-- **`/kubernetes`** - Cluster management
-
-Todas accesibles desde http://backstage.kind.local
+- ✅ Secrets en GitHub Secrets (CI/CD)
+- ✅ Secrets en Kubernetes (Runtime)
+- ✅ GitHub Token para ArgoCD write-back
+- ✅ Docker Hub credentials en Image Updater
+- ❌ **NUNCA** commitear `.env` a Git
 
 ---
 
-## 🎯 Estado del Proyecto
+## 📊 Estado del Proyecto
 
 ### ✅ Completado
 
-- [x] Backstage desplegado con 1 réplica
-- [x] PostgreSQL funcionando
-- [x] Prometheus + Grafana + AlertManager
-- [x] ArgoCD GitOps
-- [x] Ingresses configurados (.kind.local)
-- [x] Resource Quotas (3 CPU, 6Gi RAM)
-- [x] Catálogo de servicios de plataforma
-- [x] Custom Pages para cada servicio
+- [x] Backstage desplegado y funcional
+- [x] PostgreSQL en cluster
+- [x] CI/CD con GitHub Actions
+- [x] GitOps con ArgoCD
+- [x] Image Updater configurado
+- [x] Auto-sync habilitado
+- [x] Monitoreo con Prometheus + Grafana
+- [x] Helm Chart completo
 - [x] Documentación completa
 
-### 🚧 En Progreso
+### 🎯 En Uso
 
-- [ ] Push de páginas al repositorio Git
-- [ ] Configuración de alertas
-- [ ] Dashboards custom en Grafana
+**Repositorio Git**: https://github.com/Portfolio-jaime/BACKSTAGE-KIND-MIGRATION
+**Docker Hub**: `jaimehenao8126/backstage-production:latest`
+**ArgoCD**: Configurado con auto-sync + self-heal
+**Image Updater**: Polling cada 2 minutos
+
+---
+
+## 🚀 Próximos Pasos
+
+1. Hacer cambio en código
+2. Push a `main`
+3. Esperar ~5 min (CI/CD + ArgoCD)
+4. Verificar en ArgoCD UI
+5. Probar en http://localhost:7007
 
 ---
 
 ## 📧 Contacto
 
-**Platform Engineering Team**
-- Email: platform-engineering@ba.com
-- Backstage: http://backstage.kind.local
+**Maintainer**: Jaime Henao
+**Email**: jaime.andres.henao.arbelaez@ba.com
+**GitHub**: https://github.com/Portfolio-jaime
 
 ---
 
 **🚀 Happy Coding!**
 
-*Última actualización: Octubre 6, 2025*
+*Última actualización: Octubre 11, 2025*
