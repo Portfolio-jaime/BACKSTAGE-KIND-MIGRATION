@@ -8,6 +8,11 @@ image:
 
 namespace: backstage
 
+serviceAccount:
+  create: true
+  name: backstage
+  annotations: {}
+
 service:
   type: ClusterIP
   port: 80
