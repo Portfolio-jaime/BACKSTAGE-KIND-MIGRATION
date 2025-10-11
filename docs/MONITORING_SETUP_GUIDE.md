@@ -53,31 +53,37 @@ kubectl get prometheusrule backstage-alerts -n monitoring
 
 ### 3. **Persistent Storage para Prometheus** ✅
 
-PVC de 20Gi configurado para Prometheus:
+Prometheus Operator gestiona automáticamente el almacenamiento persistente mediante volumeClaimTemplate:
 
 ```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: prometheus-storage
-  namespace: monitoring
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
+storage:
+  volumeClaimTemplate:
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+      storageClassName: standard
+```
+
+**PVC creado automáticamente:**
+```
+prometheus-prometheus-prometheus-db-prometheus-prometheus-prometheus-0 - 5Gi Bound
 ```
 
 **Beneficios:**
 - ✅ Datos de métricas persisten al reiniciar pods
 - ✅ Histórico de métricas disponible
-- ✅ 20Gi de almacenamiento (configurable)
+- ✅ 5Gi de almacenamiento (configurable en Helm values)
+- ✅ Gestionado automáticamente por el Operator
 
 **Verificar:**
 ```bash
-kubectl get pvc -n monitoring
-kubectl get prometheus prometheus-prometheus -n monitoring -o yaml | grep -A 10 storage
+kubectl get pvc -n monitoring | grep prometheus
+# prometheus-prometheus-prometheus-db-prometheus-prometheus-prometheus-0   Bound   5Gi
+
+kubectl get prometheus prometheus-prometheus -n monitoring -o jsonpath='{.spec.storage}' | jq .
 ```
 
 ### 4. **Grafana OAuth con GitHub** ✅
@@ -230,10 +236,10 @@ kubectl delete pod -n monitoring -l app.kubernetes.io/name=alertmanager
 
 ```
 monitoring/
-├── backstage-dashboard.json       # Dashboard de Grafana
-├── backstage-alerts.yaml          # PrometheusRule con alertas
-├── prometheus-pvc.yaml            # PVC para persistent storage
-└── backstage-servicemonitor.yaml  # ServiceMonitor (pendiente)
+├── backstage-dashboard.json       # Dashboard de Grafana ✅
+├── backstage-alerts.yaml          # PrometheusRule con alertas ✅
+├── prometheus-pvc.yaml            # PVC de referencia (no usado - Operator gestiona storage automáticamente)
+└── backstage-servicemonitor.yaml  # ServiceMonitor (pendiente - requiere plugin Prometheus en Backstage)
 ```
 
 ---
