@@ -1,0 +1,93 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backstage
+  namespace: argocd
+  # Finalizer para asegurar que ArgoCD limpia los recursos al eliminar la app
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  # Annotations para Image Updater (actualización automática de imagen)
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: backstage=jaimehenao8126/backstage-production:latest
+    argocd-image-updater.argoproj.io/backstage.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/backstage.allow-tags: regexp:^(latest|main-.*)$
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/write-back-target: "kustomization:helm/backstage"
+spec:
+  # Proyecto de ArgoCD
+  project: default
+
+  # Fuente: este repositorio Git
+  source:
+    repoURL: https://github.com/Portfolio-jaime/BACKSTAGE-KIND-MIGRATION.git
+    targetRevision: main
+    path: helm/backstage
+
+    # Configuración de Helm
+    helm:
+      # Valores por defecto
+      valueFiles:
+        - values.yaml
+
+      # Override de valores específicos
+      parameters:
+        - name: image.repository
+          value: jaimehenao8126/backstage-production
+        - name: image.tag
+          value: latest
+        - name: image.pullPolicy
+          value: Always
+        - name: replicaCount
+          value: "1"
+        - name: namespace
+          value: backstage
+
+      # Release name
+      releaseName: backstage
+
+  # Destino: Cluster local de Kind
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backstage
+
+  # Políticas de sincronización
+  syncPolicy:
+    # Sincronización automática
+    automated:
+      # Auto-heal: corrige drift automáticamente
+      selfHeal: true
+      # Prune: elimina recursos que ya no están en Git
+      prune: true
+      # Allow empty: permite sincronizar aunque no haya cambios
+      allowEmpty: false
+
+    # Opciones de sincronización
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+
+    # Retry policy
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignorar diferencias en campos específicos
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+        - /spec/template/spec/containers/0/image
+
+  # Información adicional
+  info:
+    - name: 'Repository'
+      value: 'https://github.com/Portfolio-jaime/BACKSTAGE-KIND-MIGRATION'
+    - name: 'Documentation'
+      value: 'https://github.com/Portfolio-jaime/BACKSTAGE-KIND-MIGRATION/blob/main/README.md'
