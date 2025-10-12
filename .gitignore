@@ -20,6 +20,8 @@ coverage/
 # Local development
 .vscode/
 .idea/
+*.code-workspace
+*.workspace
 *.log
 *.pid
 *.seed

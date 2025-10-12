@@ -1,0 +1,9 @@
+apiVersion: v2
+name: backstage-ingress
+description: Ingress configuration para Backstage
+type: application
+version: 1.0.0
+appVersion: "1.0"
+maintainers:
+  - name: Jaime Henao
+    email: jaime.andres.henao.arbelaez@ba.com

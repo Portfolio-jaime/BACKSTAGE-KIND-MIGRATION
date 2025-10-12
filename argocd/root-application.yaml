@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backstage-platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  # Source: Todas las aplicaciones de ArgoCD en el directorio argocd/
+  source:
+    repoURL: https://github.com/Portfolio-jaime/backstage-kind-migration.git
+    targetRevision: main
+    path: argocd/apps
+
+  # Destination
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  # Sync policy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+
+  # Info
+  info:
+    - name: Description
+      value: "Root Application - Gestiona todas las aplicaciones de la plataforma Backstage"
+    - name: Maintainer
+      value: "Jaime Henao <jaime.andres.henao.arbelaez@ba.com>"
+    - name: Repository
+      value: "https://github.com/Portfolio-jaime/backstage-kind-migration"
