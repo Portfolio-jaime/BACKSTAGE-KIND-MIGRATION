@@ -10,16 +10,77 @@ metadata:
 spec:
   project: default
 
-  # Source: Nuestro wrapper Helm chart que usa Bitnami PostgreSQL
+  # Source: Bitnami PostgreSQL chart con nuestros values
   source:
-    repoURL: https://github.com/Portfolio-jaime/backstage-kind-migration.git
-    targetRevision: main
-    path: helm-charts/postgresql
+    chart: postgresql
+    repoURL: https://charts.bitnami.com/bitnami
+    targetRevision: 16.7.27
     helm:
       releaseName: psql
-      # Values desde el repo
-      valueFiles:
-        - values.yaml
+      # Values desde nuestro repo
+      values: |
+        # Global configuration
+        global:
+          postgresql:
+            auth:
+              database: backstage
+              username: backstage
+              password: backstage
+              postgresPassword: backstage
+
+        # Authentication configuration
+        auth:
+          database: backstage
+          username: backstage
+          password: backstage
+          postgresPassword: backstage
+
+        # Architecture
+        architecture: standalone
+
+        # Primary configuration
+        primary:
+          name: primary
+
+          # Persistence
+          persistence:
+            enabled: true
+            size: 8Gi
+            storageClass: standard
+            accessModes:
+              - ReadWriteOnce
+
+          # Resources
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # PostgreSQL configuration
+          configuration: |-
+            max_connections = 100
+            shared_buffers = 128MB
+            effective_cache_size = 256MB
+            wal_level = replica
+            max_wal_size = 1GB
+
+          # Init DB scripts
+          initdb:
+            scripts:
+              init.sql: |
+                CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+                CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+        # Metrics
+        metrics:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            namespace: backstage
+            interval: 30s
 
   # Destination
   destination:
