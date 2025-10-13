@@ -76,9 +76,9 @@ spec:
 
         # Metrics
         metrics:
-          enabled: true
+          enabled: false
           serviceMonitor:
-            enabled: true
+            enabled: false
             namespace: backstage
             interval: 30s
 
