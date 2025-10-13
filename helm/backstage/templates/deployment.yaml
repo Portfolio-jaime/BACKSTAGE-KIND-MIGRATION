@@ -29,22 +29,6 @@ spec:
     spec:
       serviceAccountName: {{ include "backstage.serviceAccountName" . }}
 
-      {{- if .Values.initContainers.enabled }}
-      initContainers:
-      - name: wait-for-postgres
-        image: {{ .Values.initContainers.waitForPostgres.image }}
-        command: ['sh', '-c']
-        args:
-          - |
-            until nc -z {{ .Values.postgres.host }} {{ .Values.postgres.port }}; do
-              echo "Waiting for PostgreSQL..."
-              sleep 2
-            done
-            echo "PostgreSQL is ready!"
-        resources:
-          {{- toYaml .Values.initContainers.waitForPostgres.resources | nindent 10 }}
-      {{- end }}
-
       containers:
       - name: backstage
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
