@@ -79,6 +79,15 @@ spec:
           enabled: false
           serviceMonitor:
             enabled: false
+
+        # Network Policy
+        networkPolicy:
+          enabled: true
+          ingress:
+            - from:
+              - podSelector:
+                  matchLabels:
+                    app: backstage
             namespace: backstage
             interval: 30s
 
