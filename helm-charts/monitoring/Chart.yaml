@@ -1,9 +1,0 @@
-apiVersion: v2
-name: backstage-monitoring
-description: Configuraciones adicionales de monitoreo para Backstage (alertas, dashboards)
-type: application
-version: 1.0.0
-appVersion: "1.0"
-maintainers:
-  - name: Jaime Henao
-    email: jaime.andres.henao.arbelaez@ba.com

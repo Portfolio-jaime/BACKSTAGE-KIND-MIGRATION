@@ -7,7 +7,8 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   # Annotations para Image Updater (actualización automática de imagen)
-  annotations: {}
+  annotations:
+    gemini-sync-trigger: "1"
 spec:
   # Proyecto de ArgoCD
   project: default
@@ -82,7 +83,6 @@ spec:
       kind: Deployment
       jsonPointers:
         - /spec/replicas
-        - /spec/template/spec/containers/0/image
 
   # Información adicional
   info:

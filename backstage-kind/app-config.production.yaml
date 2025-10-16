@@ -69,10 +69,9 @@ auth:
       production:
         clientId: ${AUTH_GITHUB_CLIENT_ID}
         clientSecret: ${AUTH_GITHUB_CLIENT_SECRET}
-        ## Uncomment if you want to use GitHub login with sign-in resolver
-        # signIn:
-        #   resolvers:
-        #     - resolver: usernameMatchingUserEntityName
+        signIn:
+          resolvers:
+            - resolver: usernameMatchingUserEntityName
 
 # Kubernetes integration
 kubernetes:
