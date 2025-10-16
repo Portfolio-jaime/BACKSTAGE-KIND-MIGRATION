@@ -7,13 +7,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   # Annotations para Image Updater (actualización automática de imagen)
-  annotations:
-    argocd-image-updater.argoproj.io/image-list: backstage=jaimehenao8126/backstage-production:latest
-    argocd-image-updater.argoproj.io/backstage.update-strategy: newest-build
-    argocd-image-updater.argoproj.io/backstage.allow-tags: regexp:^(latest|main-.*)$
-    argocd-image-updater.argoproj.io/write-back-method: git
-    argocd-image-updater.argoproj.io/git-branch: main
-    argocd-image-updater.argoproj.io/write-back-target: "kustomization:helm/backstage"
+  annotations: {}
 spec:
   # Proyecto de ArgoCD
   project: default
@@ -79,6 +73,11 @@ spec:
 
   # Ignorar diferencias en campos específicos
   ignoreDifferences:
+    - kind: ServiceAccount
+      name: backstage
+      namespace: backstage
+      jsonPointers:
+        - /metadata
     - group: apps
       kind: Deployment
       jsonPointers:
