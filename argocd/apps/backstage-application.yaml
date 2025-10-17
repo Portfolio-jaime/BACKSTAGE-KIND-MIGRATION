@@ -35,9 +35,9 @@ spec:
         - name: image.repository
           value: jaimehenao8126/backstage-production
         - name: image.tag
-          value: v9
+          value: kind-arm64
         - name: image.pullPolicy
-          value: IfNotPresent
+          value: Always
         - name: replicaCount
           value: "1"
         - name: namespace
