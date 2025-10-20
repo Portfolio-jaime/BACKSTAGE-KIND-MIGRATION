@@ -1,0 +1,27 @@
+replicaCount: 1
+
+image:
+  repository: postgres
+  tag: "16"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5432
+
+auth:
+  username: "backstageuser"
+  password: "backstagepassword"
+  database: "backstage_plugin_catalog"
+
+persistence:
+  enabled: true
+  size: 8Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
