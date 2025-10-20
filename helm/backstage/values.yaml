@@ -92,6 +92,8 @@ envFrom:
       name: backstage-env-config
   - secretRef:
       name: backstage-secrets
+  - secretRef:
+      name: backstage-backend-secret
 
 # PostgreSQL init container configuration
 initContainers:
