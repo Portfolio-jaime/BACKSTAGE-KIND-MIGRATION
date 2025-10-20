@@ -30,7 +30,7 @@ spec:
         - name: image.repository
           value: jaimehenao8126/backstage-production
         - name: image.tag
-          value: latest
+          value: kind-arm64
         - name: image.pullPolicy
           value: Always
         - name: replicaCount

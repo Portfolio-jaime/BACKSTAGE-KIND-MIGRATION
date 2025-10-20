@@ -3,7 +3,7 @@ replicaCount: 1
 
 image:
   repository: jaimehenao8126/backstage-production
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   tag: "latest"
 
 namespace: backstage

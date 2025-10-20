@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backstage-env-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "backstage.labels" . | nindent 4 }}
+data:
+  # Auth
+  AUTH_GITHUB_CLIENT_ID: ""
+  AUTH_GITHUB_CLIENT_SECRET: ""
+
+  # Base URL
+  APP_BASE_URL: "http://{{ .Values.ingress.host }}"
+  BACKEND_BASE_URL: "http://{{ .Values.ingress.host }}"
+
+  # Database
+  POSTGRES_HOST: "{{ .Values.postgres.host }}"
+  POSTGRES_PORT: "{{ .Values.postgres.port }}"
+  POSTGRES_USER: "{{ .Values.postgres.auth.usernameKey }}"
+  POSTGRES_PASSWORD: "{{ .Values.postgres.auth.passwordKey }}"
+  POSTGRES_DB: "{{ .Values.postgres.database }}"
