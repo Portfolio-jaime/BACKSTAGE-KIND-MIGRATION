@@ -116,6 +116,31 @@ jobs:
 
 
 
+      - name: Configure Kubeconfig for in-cluster access
+        run: |
+          mkdir -p ~/.kube
+          echo "apiVersion: v1"
+          echo "clusters:"
+          echo "- cluster:"
+          echo "    certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+          echo "    server: https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"
+          echo "  name: in-cluster"
+          echo "contexts:"
+          echo "- context:"
+          echo "    cluster: in-cluster"
+          echo "    user: in-cluster"
+          echo "  name: in-cluster"
+          echo "current-context: in-cluster"
+          echo "kind: Config"
+          echo "preferences: {}"
+          echo "users:"
+          echo "- name: in-cluster"
+          echo "  user:"
+          echo "    token: $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+          echo "" > ~/.kube/config
+          chmod 600 ~/.kube/config
+          kubectl config use-context in-cluster
+
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
