@@ -116,6 +116,11 @@ jobs:
 
 
 
+      - name: Verify Service Account Token
+        run: |
+          ls -la /var/run/secrets/kubernetes.io/serviceaccount/
+          cat /var/run/secrets/kubernetes.io/serviceaccount/token || echo "Token file not found or unreadable."
+
       - name: Configure Kubeconfig for in-cluster access
         run: |
           mkdir -p ~/.kube
