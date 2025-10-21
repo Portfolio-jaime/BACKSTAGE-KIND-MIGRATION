@@ -134,7 +134,6 @@ proxy:
       target: http://grafana.kind.local
       changeOrigin: true
       secure: false
-      allowUnauthenticated: true
       pathRewrite:
         '^/api/proxy/grafana': ''
 
@@ -142,8 +141,7 @@ proxy:
     '/prometheus':
       target: http://prometheus.kind.local
       changeOrigin: true
-      secure: false
-      allowUnauthenticated: true
+
       pathRewrite:
         '^/api/proxy/prometheus': ''
 

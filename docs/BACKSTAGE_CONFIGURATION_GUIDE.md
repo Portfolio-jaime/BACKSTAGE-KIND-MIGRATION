@@ -502,20 +502,17 @@ backend:
 # .env
 POSTGRES_HOST=psql-postgresql.backstage.svc.cluster.local
 POSTGRES_PORT=5432
-POSTGRES_USER=backstage
-POSTGRES_PASSWORD=your-secure-password
+# POSTGRES_USER y POSTGRES_PASSWORD se obtienen del secret 'backstage-secrets'
+# POSTGRES_USER=backstage
+# POSTGRES_PASSWORD=your-secure-password
 ```
 
 #### Desplegar PostgreSQL en Kubernetes
 
 ```bash
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install psql bitnami/postgresql \
-  --namespace backstage \
-  --set auth.username=backstage \
-  --set auth.password=your-secure-password \
-  --set auth.database=backstage \
-  --set primary.persistence.size=8Gi
+# PostgreSQL ahora se despliega a través de ArgoCD usando el chart de Helm local
+# en helm-charts/postgresql. Las credenciales se gestionan a través del secret 'backstage-secrets'.
+# No es necesario ejecutar 'helm install' directamente.
 ```
 
 ### SQLite (Solo para Desarrollo)
@@ -933,6 +930,9 @@ ARGOCD_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxx
 # Auth
 AUTH_GITHUB_CLIENT_ID=xxxxxxxxxxxxxxxxxxxx
 AUTH_GITHUB_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxx
+
+# Backstage Backend Secret (for authentication token signing)
+BACKEND_SECRET=your-random-backend-secret
 ```
 
 ### ConfigMap en Kubernetes
@@ -964,6 +964,20 @@ stringData:
   POSTGRES_PASSWORD: "your-secure-password"
   GITHUB_TOKEN: "ghp_xxxxxxxxxxxxxxxxxxxx"
   K8S_SA_TOKEN: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ii..."
+```
+
+### Secret para Backend de Backstage
+
+```yaml
+# kubernetes/backstage-backend-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backstage-backend-secret
+  namespace: backstage
+type: Opaque
+stringData:
+  BACKEND_SECRET: "your-random-backend-secret"
 ```
 
 ---

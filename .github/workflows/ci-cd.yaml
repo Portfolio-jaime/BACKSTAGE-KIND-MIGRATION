@@ -105,6 +105,36 @@ jobs:
           echo "📦 Image: ${{ env.DOCKER_IMAGE }}:${{ steps.vars.outputs.tag }}"
           echo "📦 Latest: ${{ env.DOCKER_IMAGE }}:latest"
 
+  deploy-to-kind:
+    name: Deploy to Kind Cluster
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production # Assuming a production environment for deployment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.10.0 # Specify a Helm version
+
+      - name: Deploy Backstage with Helm
+        run: |
+          helm upgrade backstage ./helm/backstage \
+            --namespace ${{ env.NAMESPACE }} \
+            --set image.tag=latest \
+            --set env.AUTH_GITHUB_CLIENT_ID=${{ secrets.AUTH_GITHUB_CLIENT_ID }} \
+            --set env.AUTH_GITHUB_CLIENT_SECRET=${{ secrets.AUTH_GITHUB_CLIENT_SECRET }} \
+            --reuse-values
+
+      - name: Verify Backstage Deployment
+        run: |
+          kubectl rollout status deployment/backstage -n ${{ env.NAMESPACE }}
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/name=backstage
+
   # Notify to update local deployment
   notify-update:
     name: Notify Update Available

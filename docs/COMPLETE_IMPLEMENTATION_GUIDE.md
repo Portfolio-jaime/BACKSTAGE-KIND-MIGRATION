@@ -620,14 +620,11 @@ subjects:
     namespace: backstage
 ```
 
-#### 4.5 Desplegar PostgreSQL (si no existe)
-```bash
-helm install psql bitnami/postgresql \
-  --namespace backstage \
-  --set auth.username=backstage \
-  --set auth.password=backstage \
-  --set auth.database=backstage
-```
+#### 4.5 Desplegar PostgreSQL (gestionado por ArgoCD)
+
+PostgreSQL ahora se despliega y gestiona a través de ArgoCD, utilizando el chart de Helm local ubicado en `helm-charts/postgresql` en este repositorio. Las credenciales se obtienen del secret `backstage-secrets`.
+
+**No es necesario ejecutar comandos `helm install` directamente para PostgreSQL.** La sincronización la realiza ArgoCD automáticamente al detectar los cambios en el repositorio.
 
 #### 4.6 Crear Deployment
 ```bash
@@ -1139,6 +1136,20 @@ kubernetes/
 ├── ingress.yaml
 ├── monitoring-ingresses.yaml
 └── argocd-ingress.yaml
+```
+
+#### Helm Charts
+```
+helm-charts/
+└── postgresql/
+    ├── Chart.yaml
+    ├── values.yaml
+    └── templates/
+        ├── _helpers.tpl
+        ├── deployment.yaml
+        ├── pvc.yaml
+        ├── secret.yaml
+        └── service.yaml
 ```
 
 #### Catalog

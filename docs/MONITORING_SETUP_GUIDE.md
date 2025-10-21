@@ -190,9 +190,9 @@ kubectl apply -f monitoring/backstage-servicemonitor.yaml
 
 | Servicio | Ingress | Port Forward | Credenciales |
 |----------|---------|--------------|--------------|
-| **Prometheus** | http://prometheus.kind.local | `kubectl port-forward -n monitoring svc/prometheus-prometheus 9090:9090` | N/A |
+| **Prometheus** | http://prometheus.kind.local | `kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090` | N/A |
 | **Grafana** | http://grafana.kind.local | `kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80` | ✅ GitHub OAuth |
-| **AlertManager** | http://alertmanager.kind.local | `kubectl port-forward -n monitoring svc/prometheus-alertmanager 9093:9093` | N/A |
+| **AlertManager** | http://alertmanager.kind.local | `kubectl port-forward -n monitoring svc/kube-prometheus-stack-alertmanager 9093:9093` | N/A |
 
 **Agregar a `/etc/hosts`:**
 ```bash
