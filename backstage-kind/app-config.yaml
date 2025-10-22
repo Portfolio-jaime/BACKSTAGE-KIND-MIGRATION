@@ -65,7 +65,7 @@ techdocs:
 auth:
   # see https://backstage.io/docs/auth/ to learn about auth providers
   providers:
-    # GitHub authentication (guest disabled in production)
+    guest: null # Disable guest access in development
     github:
       development:
         clientId: ${AUTH_GITHUB_CLIENT_ID}
