@@ -122,11 +122,11 @@ jobs:
           ARGO_APP_FILE="argocd/backstage-application.yaml"
 
           # Update the image.tag parameter
-          yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = env(IMAGE_TAG)' -i "$ARGO_APP_FILE"
+          yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
 
           # Also update the image.tag for the 'latest' tag if it's main branch
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag" and .value == "latest").value = env(IMAGE_TAG)' -i "$ARGO_APP_FILE"
+            yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag" and .value == "latest").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
           fi
 
           echo "Updated $ARGO_APP_FILE with image.tag=$IMAGE_TAG"
