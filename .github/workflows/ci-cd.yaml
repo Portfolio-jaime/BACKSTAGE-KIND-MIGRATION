@@ -106,64 +106,42 @@ jobs:
           echo "📦 Latest: ${{ env.DOCKER_IMAGE }}:latest"
 
   deploy-to-kind:
-    name: Deploy to Kind Cluster
+    name: Deploy to Kind Cluster (via ArgoCD)
     needs: build-and-push
     runs-on: ubuntu-latest
-    environment: production # Assuming a production environment for deployment
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up yq
+        uses: mikefarah/yq@v4.30.6 # Use a specific version of yq
 
-
-      - name: Verify Service Account Token
+      - name: Update ArgoCD Application manifest with new image tag
         run: |
-          ls -la /var/run/secrets/kubernetes.io/serviceaccount/
-          cat /var/run/secrets/kubernetes.io/serviceaccount/token || echo "Token file not found or unreadable."
+          IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          ARGO_APP_FILE="argocd/backstage-application.yaml"
 
-      - name: Configure Kubeconfig for in-cluster access
+          # Update the image.tag parameter
+          yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = env(IMAGE_TAG)' -i "$ARGO_APP_FILE"
+
+          # Also update the image.tag for the 'latest' tag if it's main branch
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag" and .value == "latest").value = env(IMAGE_TAG)' -i "$ARGO_APP_FILE"
+          fi
+
+          echo "Updated $ARGO_APP_FILE with image.tag=$IMAGE_TAG"
+
+      - name: Configure Git
         run: |
-          mkdir -p ~/.kube
-          echo "apiVersion: v1"
-          echo "clusters:"
-          echo "- cluster:"
-          echo "    certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-          echo "    server: https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"
-          echo "  name: in-cluster"
-          echo "contexts:"
-          echo "- context:"
-          echo "    cluster: in-cluster"
-          echo "    user: in-cluster"
-          echo "  name: in-cluster"
-          echo "current-context: in-cluster"
-          echo "kind: Config"
-          echo "preferences: {}"
-          echo "users:"
-          echo "- name: in-cluster"
-          echo "  user:"
-          echo "    token: $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
-          echo "" > ~/.kube/config
-          chmod 600 ~/.kube/config
-          kubectl config use-context in-cluster
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@github.com"
 
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: v3.10.0 # Specify a Helm version
-
-      - name: Deploy Backstage with Helm
+      - name: Commit and Push changes to trigger ArgoCD sync
         run: |
-          helm upgrade backstage ./helm/backstage \
-            --namespace ${{ env.NAMESPACE }} \
-            --set image.tag=latest \
-            --set env.AUTH_GITHUB_CLIENT_ID=${{ secrets.AUTH_GITHUB_CLIENT_ID }} \
-            --set env.AUTH_GITHUB_CLIENT_SECRET=${{ secrets.AUTH_GITHUB_CLIENT_SECRET }} \
-            --reuse-values
+          git add argocd/backstage-application.yaml
+          git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }}"
+          git push
 
-      - name: Verify Backstage Deployment
-        run: |
-          kubectl rollout status deployment/backstage -n ${{ env.NAMESPACE }}
-          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/name=backstage
 
   # Notify to update local deployment
   notify-update:
