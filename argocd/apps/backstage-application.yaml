@@ -6,15 +6,14 @@ metadata:
   # Finalizer para asegurar que ArgoCD limpia los recursos al eliminar la app
   finalizers:
     - resources-finalizer.argocd.argoproj.io
-  # Annotations para Image Updater (actualización automática de imagen) - TEMPORALMENTE DESACTIVADO
+  # Annotations para Image Updater (actualización automática de imagen)
   annotations:
-    # argocd-image-updater.argoproj.io/image-list: backstage=jaimehenao8126/backstage-production
-    # argocd-image-updater.argoproj.io/backstage.update-strategy: newest-build
-    # argocd-image-updater.argoproj.io/backstage.allow-tags: regexp:^[a-f0-9]{40}$
-    # argocd-image-updater.argoproj.io/write-back-method: argocd
-    # argocd-image-updater.argoproj.io/backstage.helm.image-name: image.repository
-    # argocd-image-updater.argoproj.io/backstage.helm.image-tag: image.tag
-    manual-sync: "true"
+    argocd-image-updater.argoproj.io/image-list: backstage=jaimehenao8126/backstage-production
+    argocd-image-updater.argoproj.io/backstage.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/backstage.allow-tags: regexp:^[a-f0-9]{40}$
+    argocd-image-updater.argoproj.io/write-back-method: argocd
+    argocd-image-updater.argoproj.io/backstage.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/backstage.helm.image-tag: image.tag
     gemini-sync-trigger: 717188f639bb6f9ac1ca0e4e341100e06f84300d
 spec:
   # Proyecto de ArgoCD
@@ -38,7 +37,7 @@ spec:
         - name: image.pullPolicy
           value: Always
         - name: replicaCount
-          value: "1"
+          value: "2"
         - name: namespace
           value: backstage
       # Release name
