@@ -8,13 +8,12 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
   # Annotations para Image Updater (actualización automática de imagen)
   annotations:
-    argocd-image-updater.argoproj.io/image-list: backstage=jaimehenao8126/backstage-production:latest
+    argocd-image-updater.argoproj.io/image-list: backstage=jaimehenao8126/backstage-production
     argocd-image-updater.argoproj.io/backstage.update-strategy: newest-build
-    argocd-image-updater.argoproj.io/backstage.allow-tags: regexp:^(latest|main-.*)$
-    argocd-image-updater.argoproj.io/write-back-method: git
-    argocd-image-updater.argoproj.io/git-branch: main
-    argocd-image-updater.argoproj.io/write-back-target: "kustomization:helm/backstage"
-    gemini-sync-trigger: 18e47d2aedaae91a96e3c6d4481fef82c7dd5d6f
+    argocd-image-updater.argoproj.io/backstage.allow-tags: regexp:^[a-f0-9]{40}$
+    argocd-image-updater.argoproj.io/write-back-method: argocd
+    argocd-image-updater.argoproj.io/backstage.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/backstage.helm.image-tag: image.tag
 spec:
   # Proyecto de ArgoCD
   project: default
