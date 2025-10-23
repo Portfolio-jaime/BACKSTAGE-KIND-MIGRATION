@@ -133,7 +133,10 @@ jobs:
             yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag" and .value == "latest").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
           fi
 
-          echo "Updated $ARGO_APP_FILE with image.tag=$IMAGE_TAG"
+          # Bump annotation to force ArgoCD refresh
+          yq e '.metadata.annotations["gemini-sync-trigger"] = '"\"$GITHUB_SHA\"" -i "$ARGO_APP_FILE"
+
+          echo "Updated $ARGO_APP_FILE with image.tag=$IMAGE_TAG and sync trigger"
 
       - name: Configure Git
         run: |
