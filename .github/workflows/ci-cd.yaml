@@ -119,7 +119,7 @@ jobs:
       - name: Update ArgoCD Application manifest with new image tag
         run: |
           IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
-          ARGO_APP_FILE="argocd/backstage-application.yaml"
+          ARGO_APP_FILE="argocd/apps/backstage-application.yaml"
 
           # Update the image.tag parameter
           yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
@@ -138,7 +138,7 @@ jobs:
 
       - name: Commit and Push changes to trigger ArgoCD sync
         run: |
-          git add argocd/backstage-application.yaml
+          git add argocd/apps/backstage-application.yaml
           git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }}"
           git push
 
