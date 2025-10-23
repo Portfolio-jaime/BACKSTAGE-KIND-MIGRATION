@@ -17,40 +17,34 @@ metadata:
 spec:
   # Proyecto de ArgoCD
   project: default
-
   # Fuente: este repositorio Git
   source:
     repoURL: https://github.com/Portfolio-jaime/BACKSTAGE-KIND-MIGRATION.git
     targetRevision: main
     path: helm/backstage
-
     # Configuración de Helm
     helm:
       # Valores por defecto
       valueFiles:
         - values.yaml
-
       # Override de valores específicos
       parameters:
         - name: image.repository
           value: jaimehenao8126/backstage-production
         - name: image.tag
-          value: kind-arm64
+          value: f016fb73646e0e249a9505272afc1e80a037087c
         - name: image.pullPolicy
           value: Always
         - name: replicaCount
           value: "1"
         - name: namespace
           value: backstage
-
       # Release name
       releaseName: backstage
-
   # Destino: Cluster local de Kind
   destination:
     server: https://kubernetes.default.svc
     namespace: backstage
-
   # Políticas de sincronización
   syncPolicy:
     # Sincronización automática
@@ -61,14 +55,12 @@ spec:
       prune: true
       # Allow empty: permite sincronizar aunque no haya cambios
       allowEmpty: false
-
     # Opciones de sincronización
     syncOptions:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
       - PruneLast=true
       - RespectIgnoreDifferences=true
-
     # Retry policy
     retry:
       limit: 5
@@ -76,14 +68,12 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-
   # Ignorar diferencias en campos específicos
   ignoreDifferences:
     - group: apps
       kind: Deployment
       jsonPointers:
         - /spec/replicas
-
   # Información adicional
   info:
     - name: 'Repository'
