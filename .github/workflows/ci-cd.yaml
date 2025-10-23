@@ -8,6 +8,7 @@ on:
     paths:
       - 'backstage-kind/**'
       - 'helm/**'
+      - 'argocd/**'
       - 'kubernetes/**'
       - 'Makefile'
       - '.github/workflows/**'
@@ -144,7 +145,7 @@ jobs:
           git fetch origin
           git pull --rebase origin ${{ github.ref_name }} || true
           git add argocd/apps/backstage-application.yaml
-          git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }}" || true
+          git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }} [skip ci]" || true
           git push origin HEAD:${{ github.ref_name }}
 
 
