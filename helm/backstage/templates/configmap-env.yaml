@@ -13,6 +13,7 @@ data:
   # Base URL
   APP_BASE_URL: "http://{{ .Values.ingress.host }}"
   BACKEND_BASE_URL: "http://{{ .Values.ingress.host }}"
+  CORS_ORIGIN: "http://{{ .Values.ingress.host }}"
 
   # Database
   POSTGRES_HOST: "{{ .Values.postgres.host }}"
