@@ -33,11 +33,7 @@ spec:
         - name: image.repository
           value: jaimehenao8126/backstage-production
         - name: image.tag
-<<<<<<< HEAD
-          value: e862fe531cdff0eecdb41ed1c78f4f9cde0e3055
-=======
           value: 18e64fd995362ec89fedbbe4fd33d28897296f70
->>>>>>> ee35c80 (feat(helm): add catalog location override via ConfigMap)
         - name: image.pullPolicy
           value: Always
         - name: replicaCount
