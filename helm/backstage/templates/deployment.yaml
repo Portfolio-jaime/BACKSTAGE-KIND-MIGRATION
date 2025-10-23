@@ -33,6 +33,16 @@ spec:
       - name: backstage
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        command: ["node"]
+        args:
+          - "packages/backend/dist/index.cjs.js"
+          - "--config"
+          - "app-config.yaml"
+          - "--config"
+          - "app-config.production.yaml"
+          - "--config"
+          - "catalog-locations.yaml"
 
         ports:
         - name: http
@@ -95,6 +105,9 @@ spec:
           mountPath: /tmp
         - name: app-tmp
           mountPath: /app/tmp
+        - name: catalog-config
+          mountPath: /app/catalog-locations.yaml
+          subPath: catalog-locations.yaml
 
       volumes:
       - name: tmp
@@ -103,6 +116,9 @@ spec:
       - name: app-tmp
         emptyDir:
           sizeLimit: {{ .Values.volumes.appTmp.sizeLimit }}
+      - name: catalog-config
+        configMap:
+          name: backstage-catalog-config
 
       securityContext:
         fsGroup: {{ .Values.securityContext.fsGroup }}
