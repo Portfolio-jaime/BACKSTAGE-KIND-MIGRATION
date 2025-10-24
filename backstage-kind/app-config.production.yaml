@@ -18,6 +18,7 @@ backend:
   auth:
     keys:
       - secret: ${BACKEND_SECRET}
+        algorithm: HS256
 
   # CORS configuration
   cors:
@@ -63,8 +64,6 @@ integrations:
 auth:
   environment: production
   providers:
-    # Disable guest login in production
-    guest: null
     github:
       production:
         clientId: ${AUTH_GITHUB_CLIENT_ID}
