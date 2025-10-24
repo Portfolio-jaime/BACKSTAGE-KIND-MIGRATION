@@ -105,17 +105,9 @@ catalog:
     - allow: [Component, API, Resource, Group, User, Template, System, Domain]
 
   locations:
-    # Example entities (replace with your own)
-    - type: file
-      target: ./examples/entities.yaml
-    - type: file
-      target: ./examples/template/template.yaml
-      rules:
-        - allow: [Template]
-    - type: file
-      target: ./examples/org.yaml
-      rules:
-        - allow: [User, Group]
+    # Platform services catalog
+    - type: url
+      target: https://github.com/Portfolio-jaime/BACKSTAGE-KIND-MIGRATION/blob/main/backstage-catalog/platform-services.yaml
 
 # Proxy endpoints
 proxy:
