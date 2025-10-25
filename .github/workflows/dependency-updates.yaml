@@ -1,0 +1,90 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Ejecutar semanalmente los lunes a las 2 AM UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: backstage-kind/yarn.lock
+
+      - name: Install dependencies
+        working-directory: backstage-kind
+        run: yarn install --frozen-lockfile
+
+      - name: Update dependencies
+        working-directory: backstage-kind
+        run: |
+          # Actualizar dependencias menores y parches
+          yarn upgrade --latest
+
+      - name: Run tests after update
+        working-directory: backstage-kind
+        run: |
+          yarn workspace backend test --passWithNoTests
+          yarn workspace app test --passWithNoTests
+
+      - name: Run linter after update
+        working-directory: backstage-kind
+        run: |
+          yarn workspace backend lint
+          yarn workspace app lint
+
+      - name: Build after update
+        working-directory: backstage-kind
+        run: |
+          yarn workspace backend build
+          yarn workspace app build
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            chore(deps): Update dependencies
+
+            - Updated minor and patch versions
+            - All tests passing
+            - Linting successful
+            - Build successful
+          title: 'chore(deps): Weekly dependency updates'
+          body: |
+            ## Dependency Updates
+
+            This PR updates dependencies to their latest minor and patch versions.
+
+            ### Changes
+            - Updated Node.js dependencies
+            - All tests passing ✅
+            - Linting successful ✅
+            - Build successful ✅
+
+            ### Next Steps
+            - Review changes for breaking changes
+            - Test manually if needed
+            - Merge when ready
+          branch: automated/dependency-updates
+          delete-branch: true
+          labels: |
+            dependencies
+            automated

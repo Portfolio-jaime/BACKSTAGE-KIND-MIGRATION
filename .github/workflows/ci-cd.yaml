@@ -20,6 +20,8 @@ on:
 
 permissions:
   contents: write
+  security-events: write
+  packages: write
 
 env:
   DOCKER_IMAGE: jaimehenao8126/backstage-production
@@ -50,17 +52,21 @@ jobs:
         working-directory: backstage-kind
         run: yarn install --frozen-lockfile
 
+      - name: Run security audit
+        working-directory: backstage-kind
+        run: yarn audit --audit-level moderate
+
       - name: Run linter
         working-directory: backstage-kind
         run: |
-          yarn workspace backend lint || true
-          yarn workspace app lint || true
+          yarn workspace backend lint
+          yarn workspace app lint
 
       - name: Run tests
         working-directory: backstage-kind
         run: |
-          yarn workspace backend test --passWithNoTests || true
-          yarn workspace app test --passWithNoTests || true
+          yarn workspace backend test --passWithNoTests
+          yarn workspace app test --passWithNoTests
 
       - name: Build backend
         working-directory: backstage-kind
@@ -69,6 +75,21 @@ jobs:
       - name: Build frontend
         working-directory: backstage-kind
         run: yarn workspace app build
+
+      # Security scanning
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './backstage-kind'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
 
       # Docker Build and Push
       - name: Set up Docker Buildx
@@ -102,9 +123,23 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
 
+      - name: Scan Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          scan-ref: '${{ env.DOCKER_IMAGE }}:${{ steps.vars.outputs.tag }}'
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+
+      - name: Upload Docker scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+
       - name: Image info
         run: |
-          echo "✅ Image pushed successfully!"
+          echo "✅ Image pushed and scanned successfully!"
           echo "📦 Image: ${{ env.DOCKER_IMAGE }}:${{ steps.vars.outputs.tag }}"
           echo "📦 Latest: ${{ env.DOCKER_IMAGE }}:latest"
 
@@ -120,6 +155,11 @@ jobs:
       - name: Set up yq
         uses: mikefarah/yq@v4.30.6 # Use a specific version of yq
 
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@github.com"
+
       - name: Update ArgoCD Application manifest with new image tag
         run: |
           IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
@@ -131,59 +171,33 @@ jobs:
           yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
 
           # Bump annotation to force ArgoCD refresh
-          yq e '.metadata.annotations["gemini-sync-trigger"] = '"\"$GITHUB_SHA\"" -i "$ARGO_APP_FILE"
+          yq e '.metadata.annotations["argocd-sync-trigger"] = '"\"$GITHUB_SHA\"" -i "$ARGO_APP_FILE"
 
           echo "✅ Updated $ARGO_APP_FILE with image.tag=$IMAGE_TAG and sync trigger"
           echo "📝 Changes made:"
           git diff argocd/apps/backstage-application.yaml || echo "No changes detected"
 
-      - name: Configure Git
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions@github.com"
-
-      - name: Commit and Push changes to trigger ArgoCD sync
-        run: |
-          # Configure git for safe operations
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions@github.com"
-
-          # Fetch latest changes
-          git fetch origin
-
-          # Reset any local changes to avoid conflicts
-          git reset --hard origin/${{ github.ref_name }}
-
-          # Update the ArgoCD application manifest
-          IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
-          ARGO_APP_FILE="argocd/apps/backstage-application.yaml"
-
-          # Update the image.tag parameter using yq
-          yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
-
-          # Bump annotation to force ArgoCD refresh
-          yq e '.metadata.annotations["gemini-sync-trigger"] = '"\"$GITHUB_SHA\"" -i "$ARGO_APP_FILE"
-
           # Check if there are changes to commit
           if git diff --quiet argocd/apps/backstage-application.yaml; then
             echo "No changes to commit - image tag is already up to date"
-          else
-            # Add and commit changes
-            git add argocd/apps/backstage-application.yaml
-            git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }} [skip ci]"
-
-            # Push with retry logic
-            for i in {1..3}; do
-              if git push origin HEAD:${{ github.ref_name }}; then
-                echo "✅ Successfully pushed ArgoCD application update"
-                break
-              else
-                echo "❌ Push attempt $i failed, retrying..."
-                sleep 5
-                git pull --rebase origin ${{ github.ref_name }} || true
-              fi
-            done
+            exit 0
           fi
+
+          # Add and commit changes
+          git add argocd/apps/backstage-application.yaml
+          git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }} [skip ci]"
+
+          # Push with retry logic
+          for i in {1..3}; do
+            if git push origin HEAD:${{ github.ref_name }}; then
+              echo "✅ Successfully pushed ArgoCD application update"
+              break
+            else
+              echo "❌ Push attempt $i failed, retrying..."
+              sleep 5
+              git pull --rebase origin ${{ github.ref_name }} || true
+            fi
+          done
 
 
   # Notify to update local deployment
@@ -228,7 +242,15 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
 
     steps:
-      - name: Delete old images
+      - name: Delete old images from GitHub Container Registry
         continue-on-error: true
         run: |
-          echo "🧹 Cleanup completed (manual cleanup recommended for Docker Hub)"
+          echo "🧹 Starting cleanup process..."
+
+          # Keep only last 10 images for the repository
+          IMAGES_TO_KEEP=10
+
+          # This is a placeholder - actual cleanup would require Docker Hub API or manual intervention
+          # For production, consider using Docker Hub API or a cleanup action
+          echo "ℹ️  Cleanup completed (manual cleanup recommended for Docker Hub)"
+          echo "💡 Consider implementing automated cleanup using Docker Hub API"

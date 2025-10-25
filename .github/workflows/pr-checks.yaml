@@ -7,6 +7,11 @@ on:
       - develop
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
 jobs:
   lint-and-test:
     name: Lint and Test
@@ -27,21 +32,25 @@ jobs:
         working-directory: backstage-kind
         run: yarn install --frozen-lockfile
 
+      - name: Run security audit
+        working-directory: backstage-kind
+        run: yarn audit --audit-level moderate
+
       - name: Lint backend
         working-directory: backstage-kind
-        run: yarn workspace backend lint || true
+        run: yarn workspace backend lint
 
       - name: Lint frontend
         working-directory: backstage-kind
-        run: yarn workspace app lint || true
+        run: yarn workspace app lint
 
       - name: Test backend
         working-directory: backstage-kind
-        run: yarn workspace backend test --passWithNoTests || true
+        run: yarn workspace backend test --passWithNoTests
 
       - name: Test frontend
         working-directory: backstage-kind
-        run: yarn workspace app test --passWithNoTests || true
+        run: yarn workspace app test --passWithNoTests
 
   build-check:
     name: Build Check
@@ -113,3 +122,18 @@ jobs:
           tags: jaimehenao8126/backstage-production:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Scan PR Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          scan-ref: 'jaimehenao8126/backstage-production:pr-${{ github.event.pull_request.number }}'
+          format: 'sarif'
+          output: 'trivy-pr-results.sarif'
+          exit-code: 1  # Fail on vulnerabilities found
+
+      - name: Upload PR scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-pr-results.sarif'
