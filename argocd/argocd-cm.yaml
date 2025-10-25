@@ -4,6 +4,19 @@ data:
   admin.enabled: "true"
   application.instanceLabelKey: argocd.argoproj.io/instance
   application.sync.impersonation.enabled: "false"
+  # Disable built-in Dex (using external GitHub OAuth)
+  dex.server.disable: "true"
+
+  # GitHub OAuth Configuration for ArgoCD
+  oidc.config: |
+    name: GitHub
+    issuer: https://token.actions.githubusercontent.com
+    clientId: $argocd-github-oauth-client-id
+    clientSecret: $argocd-github-oauth-client-secret
+    requestedScopes: ["openid", "profile", "email"]
+    logoutURL: https://argocd.kind.local/logout
+
+  # Keep existing Dex config for Grafana compatibility
   dex.config: |
     connectors:
     - type: github
