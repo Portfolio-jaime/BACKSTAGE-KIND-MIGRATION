@@ -10,6 +10,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/compare-options: IgnoreExtraneous
+    argocd-image-updater.argoproj.io/backstage.force-update: fe480be230ee6e891b3292272e5df320752d0648
 spec:
   # Proyecto de ArgoCD
   project: default
@@ -28,7 +29,7 @@ spec:
         - name: image.repository
           value: jaimehenao8126/backstage-production
         - name: image.tag
-          value: latest
+          value: 98cec1d4bc6c6188407eba6a8778eb51336dede3
         - name: image.pullPolicy
           value: Always
         - name: replicaCount

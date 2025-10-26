@@ -193,6 +193,8 @@ jobs:
           git diff argocd/apps/backstage-application.yaml || echo "No changes detected"
 
           # Commit and push changes to trigger ArgoCD sync
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
           git add argocd/apps/backstage-application.yaml
           git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }}" || echo "No changes to commit"
 
