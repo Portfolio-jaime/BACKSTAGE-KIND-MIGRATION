@@ -11,7 +11,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/compare-options: IgnoreExtraneous
     argocd-image-updater.argoproj.io/backstage.force-update: fe480be230ee6e891b3292272e5df320752d0648
-    backstage.io/last-deployed: "2025-10-26T04:25:09Z"
+    backstage.io/last-deployed: "2025-10-26T18:11:08Z"
 spec:
   # Proyecto de ArgoCD
   project: default
@@ -30,7 +30,7 @@ spec:
         - name: image.repository
           value: jaimehenao8126/backstage-production
         - name: image.tag
-          value: dca786197dbaf1c4ff9f5b3206fae45957f9589b
+          value: f63688054155ff11fc92c6c2673f2e793ae7df3b
         - name: image.pullPolicy
           value: Always
         - name: replicaCount
