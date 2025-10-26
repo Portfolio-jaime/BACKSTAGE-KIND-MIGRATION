@@ -221,13 +221,18 @@ jobs:
         run: |
           echo "🚀 Forcing ArgoCD sync for backstage application..."
           ARGOCD_BIN=/tmp/argocd
+          echo "ArgoCD Server: $ARGOCD_SERVER"
           if ! command -v $ARGOCD_BIN &> /dev/null; then
             echo "Installing argocd CLI..."
             curl -sSL -o $ARGOCD_BIN https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
             chmod +x $ARGOCD_BIN
           fi
-          $ARGOCD_BIN login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure
-          $ARGOCD_BIN app sync backstage --server $ARGOCD_SERVER
+          if [ -z "$ARGOCD_SERVER" ]; then
+            echo "ERROR: ARGOCD_SERVER is not set."
+            exit 1
+          fi
+          $ARGOCD_BIN login "$ARGOCD_SERVER" --username "$ARGOCD_USERNAME" --password "$ARGOCD_PASSWORD" --insecure
+          $ARGOCD_BIN app sync backstage --server "$ARGOCD_SERVER"
 
       - name: Check Kubernetes Deployment Image Tag
         run: |
