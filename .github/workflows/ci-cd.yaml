@@ -188,16 +188,13 @@ jobs:
           # Update the image.tag parameter in Helm values
           yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
 
-          # Force ArgoCD sync by updating the force-update annotation
-          yq e '.metadata.annotations["argocd-image-updater.argoproj.io/backstage.force-update"] = '"\"$GITHUB_SHA\"" -i "$ARGO_APP_FILE"
-
           echo "✅ Updated $ARGO_APP_FILE with image.tag=$IMAGE_TAG"
           echo "📝 Changes made:"
           git diff argocd/apps/backstage-application.yaml || echo "No changes detected"
 
           # Commit and push changes to trigger ArgoCD sync
           git add argocd/apps/backstage-application.yaml
-          git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }}"
+          git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }}" || echo "No changes to commit"
 
           echo "🚀 Pushing changes to trigger ArgoCD sync..."
 
