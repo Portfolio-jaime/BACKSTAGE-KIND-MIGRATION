@@ -1,0 +1,40 @@
+name: Test ArgoCD Sync
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-argocd-sync:
+    name: Test ArgoCD Sync and Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up argocd CLI
+        run: |
+          if ! command -v argocd &> /dev/null; then
+            echo "Installing argocd CLI..."
+            curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+            chmod +x argocd
+            sudo mv argocd /usr/local/bin/
+          fi
+
+      - name: Login to ArgoCD
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_USERNAME: ${{ secrets.ARGOCD_USERNAME }}
+          ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
+        run: |
+          argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure
+
+      - name: Force ArgoCD Sync
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+        run: |
+          argocd app sync backstage --server $ARGOCD_SERVER
+
+      - name: Check Kubernetes Deployment Image Tag
+        run: |
+          echo "🔎 Checking deployed image tag in Kubernetes..."
+          kubectl get deployment backstage -n backstage -o=jsonpath='{.spec.template.spec.containers[0].image}'
