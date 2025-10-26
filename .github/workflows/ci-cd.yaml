@@ -235,26 +235,6 @@ jobs:
           kubectl get deployment backstage -n backstage -o=jsonpath='{.spec.template.spec.containers[0].image}'
           echo "Expected image: ${{ env.DOCKER_IMAGE }}:${{ needs.build-and-push.outputs.image-tag }}"
 
-        - name: Check ArgoCD Application Sync Status
-          run: |
-            echo "🔎 Checking ArgoCD application sync status..."
-            # Requires argocd CLI and access to ArgoCD server
-            # You may need to set ARGOCD_SERVER, ARGOCD_USERNAME, ARGOCD_PASSWORD as secrets
-            if ! command -v argocd &> /dev/null; then
-              echo "Installing argocd CLI..."
-              curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-              chmod +x argocd
-              sudo mv argocd /usr/local/bin/
-            fi
-            argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure
-            argocd app get backstage --server $ARGOCD_SERVER
-            argocd app sync-status backstage --server $ARGOCD_SERVER
-
-        - name: Check Kubernetes Deployment Image Tag
-          run: |
-            echo "🔎 Checking deployed image tag in Kubernetes..."
-            kubectl get deployment backstage -n backstage -o=jsonpath='{.spec.template.spec.containers[0].image}'
-            echo "Expected image: ${{ env.DOCKER_IMAGE }}:${{ needs.build-and-push.outputs.image-tag }}"
 
 
   # Summary and notifications
