@@ -120,7 +120,7 @@ jobs:
           context: ./backstage-kind
           file: ./backstage-kind/Dockerfile.kind
           push: false
-          tags: jaimehenao8126/backstage-production:pr-${{ github.event.pull_request.number }}
+          tags: jaimehenao8126/backstage-production:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -129,7 +129,7 @@ jobs:
         continue-on-error: true
         with:
           scan-type: 'image'
-          scan-ref: 'jaimehenao8126/backstage-production:pr-${{ github.event.pull_request.number }}'
+          scan-ref: 'jaimehenao8126/backstage-production:pr-${{ github.event.pull_request.number }}-${{ github.sha }}'
           format: 'sarif'
           output: 'trivy-pr-results.sarif'
           exit-code: 0  # Don't fail PR on vulnerabilities, just report

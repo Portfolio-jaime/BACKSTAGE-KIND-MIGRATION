@@ -116,7 +116,12 @@ jobs:
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
           else
-            echo "tag=${{ github.ref_name }}-${{ github.sha }}" >> $GITHUB_OUTPUT
+            # For PRs, use a clean tag format
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "tag=pr-${{ github.event.pull_request.number }}-${{ github.sha }}" >> $GITHUB_OUTPUT
+            else
+              echo "tag=${{ github.ref_name }}-${{ github.sha }}" >> $GITHUB_OUTPUT
+            fi
           fi
 
       - name: Build and push Docker image
@@ -144,7 +149,7 @@ jobs:
 
       - name: Upload Docker scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && exists('trivy-image-results.sarif')
         with:
           sarif_file: 'trivy-image-results.sarif'
           category: 'container'
