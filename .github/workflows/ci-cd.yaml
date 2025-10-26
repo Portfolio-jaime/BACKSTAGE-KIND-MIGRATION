@@ -234,6 +234,7 @@ jobs:
             curl -X POST \
               -H "Authorization: Bearer $ARGOCD_TOKEN" \
               -H "Content-Type: application/json" \
+              --insecure \
               "$ARGOCD_SERVER/api/v1/applications/backstage/sync" \
               --data '{"prune": true, "dryRun": false, "strategy": {"hook": {}}, "resources": null, "syncOptions": {"items": ["CreateNamespace=true", "PrunePropagationPolicy=foreground", "PruneLast=true", "RespectIgnoreDifferences=true"]}}' \
               --max-time 30 \
