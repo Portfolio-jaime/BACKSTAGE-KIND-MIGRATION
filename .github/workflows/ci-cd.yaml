@@ -149,7 +149,7 @@ jobs:
 
       - name: Upload Docker scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always() && exists('trivy-image-results.sarif')
+        if: always()
         with:
           sarif_file: 'trivy-image-results.sarif'
           category: 'container'
