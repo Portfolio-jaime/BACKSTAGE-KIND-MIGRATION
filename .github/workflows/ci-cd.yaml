@@ -130,6 +130,7 @@ jobs:
           scan-ref: '${{ env.DOCKER_IMAGE }}:${{ steps.vars.outputs.tag }}'
           format: 'sarif'
           output: 'trivy-image-results.sarif'
+          exit-code: 0  # Don't fail the build on vulnerabilities
 
       - name: Upload Docker scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3

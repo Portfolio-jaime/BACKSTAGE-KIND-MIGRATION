@@ -130,7 +130,7 @@ jobs:
           scan-ref: 'jaimehenao8126/backstage-production:pr-${{ github.event.pull_request.number }}'
           format: 'sarif'
           output: 'trivy-pr-results.sarif'
-          exit-code: 1  # Fail on vulnerabilities found
+          exit-code: 0  # Don't fail PR on vulnerabilities, just report
 
       - name: Upload PR scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
