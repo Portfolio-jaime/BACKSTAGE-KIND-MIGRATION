@@ -1,90 +1,90 @@
-name: Direct Backstage Deploy
+# name: Direct Backstage Deploy
 
-on:
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'backstage-kind/**'
-      - 'helm/**'
-      - 'argocd/**'
-      - 'Makefile'
-      - '.github/workflows/**'
-      - '!README.md'
-  workflow_dispatch:
+# on:
+#   push:
+#     branches:
+#       - main
+#       - develop
+#     paths:
+#       - 'backstage-kind/**'
+#       - 'helm/**'
+#       - 'argocd/**'
+#       - 'Makefile'
+#       - '.github/workflows/**'
+#       - '!README.md'
+#   workflow_dispatch:
 
-env:
-  DOCKER_IMAGE: jaimehenao8126/backstage-production
-  NAMESPACE: backstage
+# env:
+#   DOCKER_IMAGE: jaimehenao8126/backstage-production
+#   NAMESPACE: backstage
 
-jobs:
-  build-push-deploy:
-    name: Build, Push and Direct Deploy
-    runs-on: ubuntu-latest
+# jobs:
+#   build-push-deploy:
+#     name: Build, Push and Direct Deploy
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'yarn'
-          cache-dependency-path: backstage-kind/yarn.lock
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+#           cache: 'yarn'
+#           cache-dependency-path: backstage-kind/yarn.lock
 
-      - name: Install dependencies
-        working-directory: backstage-kind
-        run: yarn install --frozen-lockfile
+#       - name: Install dependencies
+#         working-directory: backstage-kind
+#         run: yarn install --frozen-lockfile
 
-      - name: Build backend
-        working-directory: backstage-kind
-        run: yarn workspace backend build
+#       - name: Build backend
+#         working-directory: backstage-kind
+#         run: yarn workspace backend build
 
-      - name: Build frontend
-        working-directory: backstage-kind
-        run: yarn workspace app build
+#       - name: Build frontend
+#         working-directory: backstage-kind
+#         run: yarn workspace app build
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#       - name: Log in to Docker Hub
+#         uses: docker/login-action@v3
+#         with:
+#           username: ${{ secrets.DOCKERHUB_USERNAME }}
+#           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set image tag
-        id: vars
-        run: |
-          echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+#       - name: Set image tag
+#         id: vars
+#         run: |
+#           echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backstage-kind
-          file: ./backstage-kind/Dockerfile.kind
-          push: true
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:${{ steps.vars.outputs.tag }}
-            ${{ env.DOCKER_IMAGE }}:latest
+#       - name: Build and push Docker image
+#         uses: docker/build-push-action@v5
+#         with:
+#           context: ./backstage-kind
+#           file: ./backstage-kind/Dockerfile.kind
+#           push: true
+#           tags: |
+#             ${{ env.DOCKER_IMAGE }}:${{ steps.vars.outputs.tag }}
+#             ${{ env.DOCKER_IMAGE }}:latest
 
-      - name: Update manifest with new image tag
-        run: |
-          IMAGE_TAG="${{ steps.vars.outputs.tag }}"
-          ARGO_APP_FILE="argocd/apps/backstage-application.yaml"
-          yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
+#       - name: Update manifest with new image tag
+#         run: |
+#           IMAGE_TAG="${{ steps.vars.outputs.tag }}"
+#           ARGO_APP_FILE="argocd/apps/backstage-application.yaml"
+#           yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
+#       - name: Set up kubectl
+#         uses: azure/setup-kubectl@v3
+#         with:
+#           version: 'latest'
 
-      - name: Apply manifest to cluster
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
-        run: |
-          kubectl apply -f argocd/apps/backstage-application.yaml
-          kubectl rollout status deployment/backstage -n backstage
+#       - name: Apply manifest to cluster
+#         env:
+#           KUBECONFIG: ${{ secrets.KUBECONFIG }}
+#         run: |
+#           kubectl apply -f argocd/apps/backstage-application.yaml
+#           kubectl rollout status deployment/backstage -n backstage
 
-      - name: Check deployed image tag
-        run: |
-          kubectl get deployment backstage -n backstage -o=jsonpath='{.spec.template.spec.containers[0].image}'
+#       - name: Check deployed image tag
+#         run: |
+#           kubectl get deployment backstage -n backstage -o=jsonpath='{.spec.template.spec.containers[0].image}'
