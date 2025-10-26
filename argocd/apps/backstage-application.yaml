@@ -14,12 +14,6 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: argocd
     argocd-image-updater.argoproj.io/backstage.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/backstage.helm.image-tag: image.tag
-<<<<<<< HEAD
-    gemini-sync-trigger: bd173c57d07d92dfd6c9e10a73ecbdbe1a9b87ca
-    argocd-sync-trigger: 4b8d5bb3a1711010f04f1d95667e2472a5028d51
-    argocd-image-updater.argoproj.io/backstage.force-update: 347835bf7b17e145e1557e0cefcdf5ee0582147f
-=======
->>>>>>> 823580c (fix: force ArgoCD sync on every deployment by always updating force-update annotation)
 spec:
   # Proyecto de ArgoCD
   project: default
