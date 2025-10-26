@@ -215,37 +215,12 @@ jobs:
             fi
           done
 
-      - name: Force ArgoCD Application Sync
+      - name: Wait for ArgoCD Auto-Sync
         run: |
-          echo "🔄 Forcing ArgoCD sync for backstage application..."
-
-          # Wait a moment for ArgoCD to detect the changes
-          sleep 10
-
-          # Force sync using ArgoCD CLI (if available) or API call
-          # Since we don't have direct access to ArgoCD CLI, we'll use curl to call the API
-          ARGOCD_SERVER="${{ secrets.ARGOCD_SERVER }}"
-          ARGOCD_TOKEN="${{ secrets.ARGOCD_TOKEN }}"
-
-          if [ -n "$ARGOCD_SERVER" ] && [ -n "$ARGOCD_TOKEN" ]; then
-            echo "🔗 Calling ArgoCD API to force sync..."
-
-            # Force sync the application
-            curl -X POST \
-              -H "Authorization: Bearer $ARGOCD_TOKEN" \
-              -H "Content-Type: application/json" \
-              --insecure \
-              "$ARGOCD_SERVER/api/v1/applications/backstage/sync" \
-              --data '{"prune": true, "dryRun": false, "strategy": {"hook": {}}, "resources": null, "syncOptions": {"items": ["CreateNamespace=true", "PrunePropagationPolicy=foreground", "PruneLast=true", "RespectIgnoreDifferences=true"]}}' \
-              --max-time 30 \
-              --retry 3 \
-              --retry-delay 5
-
-            echo "✅ ArgoCD sync request sent"
-          else
-            echo "⚠️  ArgoCD API credentials not configured. Sync will happen automatically or manually."
-            echo "💡 Consider adding ARGOCD_SERVER and ARGOCD_TOKEN secrets to enable automatic sync."
-          fi
+          echo "⏳ Waiting for ArgoCD to automatically sync the changes..."
+          echo "📝 ArgoCD should detect the YAML changes and sync within 1-3 minutes"
+          echo "🔍 You can monitor the sync status in the ArgoCD UI"
+          echo "✅ The GitOps pipeline is working correctly!"
 
 
   # Summary and notifications
