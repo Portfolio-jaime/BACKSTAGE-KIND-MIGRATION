@@ -176,20 +176,18 @@ jobs:
           # Update the image.tag parameter
           yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
 
-          # Bump annotation to force ArgoCD refresh
+          # Remove old annotations and add force update
+          yq e 'del(.metadata.annotations["gemini-sync-trigger"])' -i "$ARGO_APP_FILE" || true
+          yq e 'del(.metadata.annotations["argocd-sync-trigger"])' -i "$ARGO_APP_FILE" || true
           yq e '.metadata.annotations["argocd-image-updater.argoproj.io/backstage.force-update"] = '"\"$GITHUB_SHA\"" -i "$ARGO_APP_FILE"
 
           echo "✅ Updated $ARGO_APP_FILE with image.tag=$IMAGE_TAG and sync trigger"
           echo "📝 Changes made:"
           git diff argocd/apps/backstage-application.yaml || echo "No changes detected"
 
-          # Check if there are changes to commit
-          if git diff --quiet argocd/apps/backstage-application.yaml; then
-            echo "No changes to commit - image tag is already up to date"
-            echo "Forcing ArgoCD sync with annotation update..."
-            # Force sync even if no changes by updating annotation
-            yq e '.metadata.annotations["argocd-image-updater.argoproj.io/backstage.force-update"] = '"\"$GITHUB_SHA-force\"" -i "$ARGO_APP_FILE"
-          fi
+          # Always force a sync by updating the force-update annotation
+          echo "Forcing ArgoCD sync with annotation update..."
+          yq e '.metadata.annotations["argocd-image-updater.argoproj.io/backstage.force-update"] = '"\"$GITHUB_SHA-force\"" -i "$ARGO_APP_FILE"
 
           # Add and commit changes
           git add argocd/apps/backstage-application.yaml
