@@ -16,6 +16,7 @@ metadata:
     argocd-image-updater.argoproj.io/backstage.helm.image-tag: image.tag
     gemini-sync-trigger: bd173c57d07d92dfd6c9e10a73ecbdbe1a9b87ca
     argocd-sync-trigger: 4b8d5bb3a1711010f04f1d95667e2472a5028d51
+    argocd-image-updater.argoproj.io/backstage.force-update: 347835bf7b17e145e1557e0cefcdf5ee0582147f
 spec:
   # Proyecto de ArgoCD
   project: default
@@ -34,7 +35,7 @@ spec:
         - name: image.repository
           value: jaimehenao8126/backstage-production
         - name: image.tag
-          value: 4b8d5bb3a1711010f04f1d95667e2472a5028d51
+          value: 347835bf7b17e145e1557e0cefcdf5ee0582147f
         - name: image.pullPolicy
           value: Always
         - name: replicaCount
