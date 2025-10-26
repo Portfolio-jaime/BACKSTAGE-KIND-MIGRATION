@@ -6,15 +6,10 @@ metadata:
   # Finalizer para asegurar que ArgoCD limpia los recursos al eliminar la app
   finalizers:
     - resources-finalizer.argocd.argoproj.io
-  # Annotations para Image Updater (actualización automática de imagen)
+  # Annotations para forzar sync inmediato
   annotations:
-    argocd-image-updater.argoproj.io/image-list: backstage=jaimehenao8126/backstage-production
-    argocd-image-updater.argoproj.io/backstage.update-strategy: newest-build
-    argocd-image-updater.argoproj.io/backstage.allow-tags: regexp:^[a-f0-9]{40}$
-    argocd-image-updater.argoproj.io/write-back-method: argocd
-    argocd-image-updater.argoproj.io/backstage.helm.image-name: image.repository
-    argocd-image-updater.argoproj.io/backstage.helm.image-tag: image.tag
-    argocd-image-updater.argoproj.io/backstage.force-update: 220260d384a21ef921786e536bba7814f99e0bec
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
 spec:
   # Proyecto de ArgoCD
   project: default
@@ -33,7 +28,7 @@ spec:
         - name: image.repository
           value: jaimehenao8126/backstage-production
         - name: image.tag
-          value: 220260d384a21ef921786e536bba7814f99e0bec
+          value: latest
         - name: image.pullPolicy
           value: Always
         - name: replicaCount
