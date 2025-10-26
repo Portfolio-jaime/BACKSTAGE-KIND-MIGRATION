@@ -98,7 +98,7 @@ Docker Hub → Image Updater (cada 2 min) → Git Update → ArgoCD Sync → K8s
 
 ### 8. ⚙️ Configuración ArgoCD
 
-**ArgoCD Application (`argocd/backstage-application.yaml`):**
+**ArgoCD Application (`argocd/apps/backstage-application.yaml`):**
 ```yaml
 metadata:
   name: backstage

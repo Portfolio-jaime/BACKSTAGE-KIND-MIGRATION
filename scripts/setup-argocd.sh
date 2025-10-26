@@ -79,7 +79,7 @@ echo "✅ Docker Hub secret created"
 # Apply Backstage Application
 echo ""
 echo "📱 Creating Backstage Application in ArgoCD..."
-kubectl apply -f argocd/backstage-application.yaml
+kubectl apply -f argocd/apps/backstage-application.yaml
 
 echo ""
 echo "✅ ArgoCD setup complete!"

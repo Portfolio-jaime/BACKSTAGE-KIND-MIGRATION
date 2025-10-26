@@ -303,7 +303,8 @@ backstage-kind-migration/
 │       └── ci-cd.yaml              # CI/CD pipeline
 │
 ├── argocd/
-│   ├── backstage-application.yaml  # ArgoCD Application
+│   ├── apps/
+│   │   └── backstage-application.yaml  # ArgoCD Application
 │   ├── image-updater-config.yaml   # Image Updater config
 │   └── github-repo-secret.yaml     # GitHub credentials (template)
 │

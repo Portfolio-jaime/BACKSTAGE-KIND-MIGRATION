@@ -81,7 +81,8 @@ kubectl get application backstage -n argocd -w
 ```
 backstage-kind-migration/
 ├── argocd/
-│   ├── backstage-application.yaml      # ArgoCD Application manifest
+│   ├── apps/
+│   │   └── backstage-application.yaml      # ArgoCD Application manifest
 │   └── image-updater-config.yaml       # Image Updater configuration
 │
 ├── helm/
@@ -130,7 +131,7 @@ backstage-kind-migration/
 
 ## ⚙️ Configuración de ArgoCD Application
 
-El archivo `argocd/backstage-application.yaml` define:
+El archivo `argocd/apps/backstage-application.yaml` define:
 
 ### Source (Fuente de Verdad)
 ```yaml
