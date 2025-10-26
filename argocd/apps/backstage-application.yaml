@@ -32,7 +32,7 @@ spec:
         - name: image.repository
           value: jaimehenao8126/backstage-production
         - name: image.tag
-          value: 347835bf7b17e145e1557e0cefcdf5ee0582147f
+          value: f1867d16f189f1006ac4539d133492a08101ed51
         - name: image.pullPolicy
           value: Always
         - name: replicaCount
