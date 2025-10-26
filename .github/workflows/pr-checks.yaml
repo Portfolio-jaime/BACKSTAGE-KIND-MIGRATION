@@ -156,7 +156,7 @@ jobs:
 
       - name: Upload PR scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always() && exists('trivy-pr-results.sarif')
+        if: always() && hashFiles('trivy-pr-results.sarif') != ''
         with:
           sarif_file: 'trivy-pr-results.sarif'
           category: 'pr-container'
