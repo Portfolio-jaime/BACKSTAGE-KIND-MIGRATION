@@ -1,5 +1,10 @@
 name: CI/CD Pipeline - Backstage
 
+# Se dispara cuando hay cambios en:
+# - Código de Backstage
+# - Dockerfile
+# - Helm charts
+# - Configuración de ArgoCD
 on:
   push:
     branches:
@@ -9,7 +14,6 @@ on:
       - 'backstage-kind/**'
       - 'helm/**'
       - 'argocd/**'
-      - 'kubernetes/**'
       - 'Makefile'
       - '.github/workflows/**'
       - '!README.md'
@@ -174,33 +178,26 @@ jobs:
 
           echo "🔄 Updating ArgoCD application with image tag: $IMAGE_TAG"
 
-          # Update the image.tag parameter
+          # Update the image.tag parameter in Helm values
           yq e '.spec.source.helm.parameters[] |= select(.name == "image.tag").value = "'"$IMAGE_TAG"'"' -i "$ARGO_APP_FILE"
 
-          # Remove old annotations and add force update
-          yq e 'del(.metadata.annotations["gemini-sync-trigger"])' -i "$ARGO_APP_FILE" || true
-          yq e 'del(.metadata.annotations["argocd-sync-trigger"])' -i "$ARGO_APP_FILE" || true
+          # Force ArgoCD sync by updating the force-update annotation
           yq e '.metadata.annotations["argocd-image-updater.argoproj.io/backstage.force-update"] = '"\"$GITHUB_SHA\"" -i "$ARGO_APP_FILE"
 
-          echo "✅ Updated $ARGO_APP_FILE with image.tag=$IMAGE_TAG and sync trigger"
+          echo "✅ Updated $ARGO_APP_FILE with image.tag=$IMAGE_TAG"
           echo "📝 Changes made:"
           git diff argocd/apps/backstage-application.yaml || echo "No changes detected"
 
-          # Always force a sync by updating the force-update annotation
-          echo "Forcing ArgoCD sync with annotation update..."
-          yq e '.metadata.annotations["argocd-image-updater.argoproj.io/backstage.force-update"] = '"\"$GITHUB_SHA-force\"" -i "$ARGO_APP_FILE"
-
-          # Add and commit changes
+          # Commit and push changes to trigger ArgoCD sync
           git add argocd/apps/backstage-application.yaml
           git commit -m "chore(argocd): Update Backstage image tag to ${{ needs.build-and-push.outputs.image-tag }} [skip ci]"
 
-          # Force push to ensure ArgoCD detects changes
-          echo "Force pushing to trigger ArgoCD sync..."
+          echo "🚀 Pushing changes to trigger ArgoCD sync..."
 
           # Push with retry logic
           for i in {1..3}; do
             if git push origin HEAD:${{ github.ref_name }}; then
-              echo "✅ Successfully pushed ArgoCD application update"
+              echo "✅ Successfully triggered ArgoCD sync with new image tag"
               break
             else
               echo "❌ Push attempt $i failed, retrying..."
@@ -210,37 +207,29 @@ jobs:
           done
 
 
-  # Notify to update local deployment
-  notify-update:
-    name: Notify Update Available
-    needs: build-and-push
+  # Summary and notifications
+  deployment-summary:
+    name: Deployment Summary
+    needs: [build-and-push, deploy-to-kind]
     runs-on: ubuntu-latest
+    if: always()
 
     steps:
-      - name: Deployment instructions
+      - name: Deployment Status Summary
         run: |
           echo "=========================================="
-          echo "🎉 New image available!"
+          echo "🚀 CI/CD Pipeline Summary"
           echo "=========================================="
           echo ""
-          echo "Image: ${{ env.DOCKER_IMAGE }}:${{ needs.build-and-push.outputs.image-tag }}"
+          echo "📦 Image: ${{ env.DOCKER_IMAGE }}:${{ needs.build-and-push.outputs.image-tag }}"
+          echo "🔗 ArgoCD Application: backstage"
+          echo "🌐 Namespace: ${{ env.NAMESPACE }}"
           echo ""
-          echo "To update your local Kind cluster, run:"
+          echo "✅ Build & Push: ${{ needs.build-and-push.result == 'success' && 'SUCCESS' || 'FAILED' }}"
+          echo "✅ ArgoCD Deploy: ${{ needs.deploy-to-kind.result == 'success' && 'SUCCESS' || 'FAILED' }}"
           echo ""
-          echo "  kubectl set image deployment/backstage \\"
-          echo "    backstage=${{ env.DOCKER_IMAGE }}:latest \\"
-          echo "    -n ${{ env.NAMESPACE }}"
-          echo ""
-          echo "Or use Helm:"
-          echo ""
-          echo "  helm upgrade backstage ./helm/backstage \\"
-          echo "    --namespace ${{ env.NAMESPACE }} \\"
-          echo "    --set image.tag=latest \\"
-          echo "    --reuse-values"
-          echo ""
-          echo "Or use the Makefile:"
-          echo ""
-          echo "  make helm-upgrade"
+          echo "🔄 ArgoCD should automatically sync the new image"
+          echo "📊 Check ArgoCD UI for deployment status"
           echo ""
           echo "=========================================="
 
