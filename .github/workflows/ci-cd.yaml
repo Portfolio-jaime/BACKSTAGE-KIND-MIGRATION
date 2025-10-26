@@ -92,6 +92,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'filesystem'
 
       # Docker Build and Push
       - name: Set up Docker Buildx
@@ -140,6 +141,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-image-results.sarif'
+          category: 'container'
 
       - name: Image info
         run: |
